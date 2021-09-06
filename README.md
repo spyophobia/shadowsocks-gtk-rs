@@ -4,4 +4,4 @@
 
 Might be incomplete and/or buggy. Use with caution.
 
-A cross-platform desktop GUI for shadowsocks-rust implemented with Druid.
+A cross-platform desktop GUI frontend for shadowsocks-rust client implemented with Druid.

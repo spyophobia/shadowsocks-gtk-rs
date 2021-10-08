@@ -1,3 +1,8 @@
+mod tray;
 fn main() {
-    println!("Hello, world!");
+    gtk::init().unwrap();
+
+    let _tray_item = tray::start();
+
+    gtk::main();
 }

@@ -1,6 +1,6 @@
-# shadowsocks-druid
+# shadowsocks-gtk-client
 
-A cross-platform desktop GUI frontend for shadowsocks-rust client implemented with Druid.
+A desktop GUI frontend for shadowsocks-rust client implemented with gtk-rs.
 
 ## Work in Progress
 

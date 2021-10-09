@@ -40,8 +40,8 @@ pub fn start() -> TrayItem {
     // create tray with icon
     let icon_dir_abs = Path::new("./res/logo").canonicalize().expect("Bad icon dir");
     let mut tray = TrayItem::new(
-        "Shadowsocks Druid",
-        "shadowsocks-druid.png",
+        "Shadowsocks GTK Client",
+        "shadowsocks-gtk-client.png",
         icon_dir_abs.to_str().expect("Non-UTF8 dir"),
     );
 

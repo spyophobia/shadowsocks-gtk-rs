@@ -1,0 +1,13 @@
+{
+  "servers": [
+    {
+      "address": "foo.bar",
+      "port": 8800,
+      "password": "foobar",
+      "method": "chacha20-ietf-poly1305",
+      "timeout": 300
+    }
+  ],
+  "local_port": 1080,
+  "local_address": "0.0.0.0"
+}

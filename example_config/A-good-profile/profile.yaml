@@ -1,0 +1,10 @@
+---
+# this is an example of a good profile with good `sslocal` launch parameters
+
+display_name: "Example Profile" # optional, defaults to parent directory's name
+pwd: "." # optional, defaults to `.` (current directory)
+ss_config_path: "./ss.json" # optional, defaults to `None`
+extra_args: # optional, a list of tokens passed to `sslocal`
+  - "--tcp-fast-open"
+  - "--worker-threads"
+  - "4"

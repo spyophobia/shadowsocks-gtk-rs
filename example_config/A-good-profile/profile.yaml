@@ -3,6 +3,7 @@
 
 display_name: "Example Profile" # optional, defaults to parent directory's name
 pwd: "." # optional, defaults to `.` (current directory)
+sslocal_path: "sslocal" # optional, defaults to `sslocal` (lookup in `$PATH`)
 ss_config_path: "./ss.json" # optional, defaults to `None`
 extra_args: # optional, a list of tokens passed to `sslocal`
   - "--tcp-fast-open"

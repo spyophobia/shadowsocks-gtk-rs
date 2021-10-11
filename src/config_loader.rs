@@ -9,16 +9,19 @@ use std::{
 use log::warn;
 use serde::{Deserialize, Serialize};
 
+/// The default path of `sslocal` binary, if not defined by profile
+const SSLOCAL_DEFAULT_PATH: &str = "sslocal";
 /// The existence of this file in a directory indicates that
 /// this directory is a connection profile.
 const PROFILE_DEF_FILE_NAME: &str = "profile.yaml";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ConfigProfile {
-    display_name: Option<String>,
-    pwd: Option<PathBuf>,
-    ss_config_path: Option<PathBuf>,
-    extra_args: Option<Vec<String>>,
+    pub display_name: Option<String>,
+    pub pwd: Option<PathBuf>,
+    pub sslocal_path: Option<PathBuf>,
+    pub ss_config_path: Option<PathBuf>,
+    pub extra_args: Option<Vec<String>>,
 }
 
 impl ConfigProfile {
@@ -26,13 +29,13 @@ impl ConfigProfile {
     ///
     /// If `stdout` or `stderr` is `None`, the corresponding output
     /// is redirected to`Stdio::null()` (discarded) by default.
-    pub fn run_sslocal<P, O, E>(&self, sslocal_path: P, stdout: Option<O>, stderr: Option<E>) -> io::Result<Child>
+    pub fn run_sslocal<O, E>(&self, stdout: Option<O>, stderr: Option<E>) -> io::Result<Child>
     where
-        P: AsRef<Path>,
         O: Into<Stdio>,
         E: Into<Stdio>,
     {
         let pwd = self.pwd.as_ref().unwrap(); // pwd should have been given a default value if not set in profile
+        let sslocal = self.sslocal_path.as_ref().unwrap(); // sslocal_path should have been given a default value if not set in profile
         let config_args: Vec<OsString> = self
             .ss_config_path
             .as_ref()
@@ -41,7 +44,7 @@ impl ConfigProfile {
         let stdout = stdout.map_or(Stdio::null(), |o| o.into());
         let stderr = stderr.map_or(Stdio::null(), |e| e.into());
 
-        Command::new(sslocal_path.as_ref())
+        Command::new(sslocal)
             .current_dir(pwd)
             .args(config_args)
             .args(extra_args)
@@ -139,6 +142,10 @@ impl ConfigFolder {
                 }
                 None => path, // use current profile path as default pwd
             });
+            // set default binary path
+            if let None = profile.sslocal_path {
+                profile.sslocal_path = Some(SSLOCAL_DEFAULT_PATH.into());
+            }
             return Ok(Self::Profile(profile));
         }
 

@@ -8,6 +8,6 @@ Might be incomplete and/or buggy. Use with caution.
 
 ## Useful Reading
 
-#### [Q & A](QnA.md)
+#### [Q&A](res/QnA.md)
 
-#### [Stay Safe](stay-safe.md)
+#### [Stay Safe](res/stay-safe.md)

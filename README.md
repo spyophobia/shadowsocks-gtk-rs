@@ -6,4 +6,8 @@ A desktop GUI frontend for shadowsocks-rust client implemented with gtk-rs.
 
 Might be incomplete and/or buggy. Use with caution.
 
-### [Stay Safe](stay-safe.md)
+## Useful Reading
+
+#### [Q & A](QnA.md)
+
+#### [Stay Safe](stay-safe.md)

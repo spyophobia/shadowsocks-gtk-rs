@@ -15,10 +15,13 @@ const SSLOCAL_DEFAULT_PATH: &str = "sslocal";
 /// this directory is a connection profile.
 const PROFILE_DEF_FILE_NAME: &str = "profile.yaml";
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfigProfile {
+    /// Should always be set, so safe to unwrap.
     pub display_name: Option<String>,
+    /// Should always be set, so safe to unwrap.
     pub pwd: Option<PathBuf>,
+    /// Should always be set, so safe to unwrap.
     pub sslocal_path: Option<PathBuf>,
     pub ss_config_path: Option<PathBuf>,
     pub extra_args: Option<Vec<String>>,
@@ -55,7 +58,7 @@ impl ConfigProfile {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ConfigGroup {
     pub display_name: String,
     pub content: Vec<ConfigFolder>,
@@ -86,7 +89,7 @@ impl From<io::Error> for ConfigLoadError {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ConfigFolder {
     /// A single `sslocal` connection profile.
     Profile(ConfigProfile),
@@ -181,6 +184,15 @@ impl ConfigFolder {
                 display_name,
                 content: subdirs,
             }))
+        }
+    }
+
+    /// Recursively get all the nested profiles within this `ConfigFolder`,
+    /// flattened and returned by reference.
+    pub fn get_profiles(&self) -> Vec<&ConfigProfile> {
+        match self {
+            ConfigFolder::Profile(p) => vec![p],
+            ConfigFolder::Group(g) => g.content.iter().flat_map(|cf| cf.get_profiles()).collect(),
         }
     }
 }

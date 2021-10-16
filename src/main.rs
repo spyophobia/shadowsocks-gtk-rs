@@ -1,4 +1,6 @@
 mod tray;
+mod util;
+
 fn main() {
     gtk::init().unwrap();
 

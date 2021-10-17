@@ -3,6 +3,7 @@ use std::path::Path;
 use gtk::{GtkMenuItemExt, Menu, MenuItem, MenuShellExt, WidgetExt};
 use libappindicator::{AppIndicator, AppIndicatorStatus};
 
+#[cfg(target_os = "linux")]
 pub struct TrayItem {
     ai: AppIndicator,
     menu: Menu,

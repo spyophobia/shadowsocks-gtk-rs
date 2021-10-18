@@ -1,3 +1,5 @@
+//! This module contains code that creates a tray item.
+
 use std::path::Path;
 
 use gtk::{GtkMenuItemExt, Menu, MenuItem, MenuShellExt, WidgetExt};

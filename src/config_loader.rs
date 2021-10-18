@@ -1,3 +1,5 @@
+//! This module contains code that handles configuration loading.
+
 use std::{
     ffi::OsString,
     fs::read_to_string,

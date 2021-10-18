@@ -1,3 +1,5 @@
+//! This module contains code that handles profile switching and automatic restarting.
+
 use std::{
     fmt::Display,
     io::{self, BufRead, BufReader, Read},

@@ -1,3 +1,5 @@
+//! This module contains miscellaneous helper structs and functions.
+
 use std::{
     fmt::Display,
     time::{Duration, Instant},

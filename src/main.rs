@@ -19,6 +19,8 @@ mod test {
         time::Duration,
     };
 
+    use log::debug;
+
     use crate::{
         config_loader::ConfigFolder,
         profile_manager::{OnFailure, ProfileManager},
@@ -36,21 +38,26 @@ mod test {
         let eg_configs = ConfigFolder::from_path_recurse("example_config").unwrap();
         let eg_configs = Box::leak(Box::new(eg_configs));
         let profile_list = eg_configs.get_profiles();
-        println!("Loaded {:?} profiles.", profile_list.len());
+        debug!("Loaded {:?} profiles.", profile_list.len());
 
+        // setup ProfileManager
         let on_fail = OnFailure::Restart {
             limit: NaiveLeakyBucketConfig::new(3, Duration::from_secs(10)),
         };
-        let mut manager = ProfileManager::new(on_fail);
-        let stdout = manager.stdout_rx.clone();
-        let stderr = manager.stderr_rx.clone();
+        let mut mgr = ProfileManager::new(on_fail);
+
+        // pipe output
+        let stdout = mgr.stdout_rx.clone();
+        let stderr = mgr.stderr_rx.clone();
         thread::spawn(move || stdout.iter().for_each(|s| println!("stdout: {}", s)));
         thread::spawn(move || stderr.iter().for_each(|s| println!("stderr: {}", s)));
 
+        // run through all example profiles
         for p in profile_list {
-            manager.switch_to(p.clone()).unwrap();
+            println!();
+            mgr.switch_to(p.clone()).unwrap();
             sleep(Duration::from_millis(2500));
         }
-        let _ = manager.stop();
+        let _ = mgr.stop();
     }
 }

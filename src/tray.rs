@@ -80,7 +80,10 @@ pub fn build_and_start(pm: Arc<RwLock<ProfileManager>>, cf: &ConfigFolder) -> Tr
 
     // add static menu entries
     tray.add_label(&"-".repeat(10));
-    tray.add_menu_item("Show", || unimplemented!());
+    tray.add_menu_item("Show", || {
+        // TODO: implement window
+        error!("Not yet implemented!");
+    });
     tray.add_menu_item("Quit", || {
         info!("Quit.");
         gtk::main_quit();

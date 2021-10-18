@@ -54,7 +54,7 @@ fn main() -> Result<(), String> {
 
     // start GUI
     gtk::init().unwrap();
-    let _tray_item = tray::build_and_start(profile_manager, &cf);
+    let _tray_item = tray::build_and_show(profile_manager, &cf);
     gtk::main();
 
     Ok(())

@@ -2,5 +2,5 @@
 # this profile is well-defined and sslocal should launch successfully,
 # however the plugin is misbehaving and errors
 
-display_name: "Plugin-fails-delayed"
+display_name: "Plugin fails delayed"
 ss_config_path: "./ss.json"

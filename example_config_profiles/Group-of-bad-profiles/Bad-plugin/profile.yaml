@@ -2,5 +2,5 @@
 # this profile is well-defined and sslocal should launch successfully,
 # however the plugin is misbehaving and errors
 
-display_name: "Plugin-fails-immediate"
+display_name: "Plugin fails immediately"
 ss_config_path: "./ss.json"

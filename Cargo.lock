@@ -909,6 +909,7 @@ dependencies = [
 name = "shadowsocks-gtk-client"
 version = "0.1.0"
 dependencies = [
+ "clap",
  "crossbeam-channel",
  "gtk",
  "libappindicator",

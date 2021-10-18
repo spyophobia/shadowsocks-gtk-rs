@@ -35,7 +35,7 @@ mod test {
         simple_logger::init().unwrap();
 
         // parse example configs
-        let eg_configs = ConfigFolder::from_path_recurse("example_config").unwrap();
+        let eg_configs = ConfigFolder::from_path_recurse("example_config_profiles").unwrap();
         let eg_configs = Box::leak(Box::new(eg_configs));
         let profile_list = eg_configs.get_profiles();
         debug!("Loaded {:?} profiles.", profile_list.len());

@@ -25,6 +25,18 @@ impl From<&NaiveLeakyBucket> for LeakyBucketOverflowed {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct NaiveLeakyBucketConfig {
+    times: usize,
+    within: Duration,
+}
+
+impl NaiveLeakyBucketConfig {
+    pub fn new(times: usize, within: Duration) -> Self {
+        Self { times, within }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct NaiveLeakyBucket {
     times: usize,
@@ -32,14 +44,17 @@ pub struct NaiveLeakyBucket {
     history: Vec<Instant>,
 }
 
-impl NaiveLeakyBucket {
-    pub fn new(times: usize, within: Duration) -> Self {
+impl From<NaiveLeakyBucketConfig> for NaiveLeakyBucket {
+    fn from(NaiveLeakyBucketConfig { times, within }: NaiveLeakyBucketConfig) -> Self {
         Self {
             times,
             within,
             history: vec![],
         }
     }
+}
+
+impl NaiveLeakyBucket {
     pub fn push(&mut self) -> Result<(), LeakyBucketOverflowed> {
         let now = Instant::now();
         self.history.push(now);
@@ -49,7 +64,6 @@ impl NaiveLeakyBucket {
             .filter(|&&t| now.saturating_duration_since(t) < self.within)
             .map(|&t| t)
             .collect();
-        dbg!(self.history.len());
         match self.history.len() <= self.times {
             true => Ok(()),
             false => Err((self as &Self).into()),
@@ -61,16 +75,18 @@ impl NaiveLeakyBucket {
 mod test {
     use std::{thread::sleep, time::Duration};
 
+    use crate::util::NaiveLeakyBucketConfig;
+
     use super::NaiveLeakyBucket;
 
     #[test]
     fn size_0() {
-        let mut lb = NaiveLeakyBucket::new(0, Duration::from_secs(1));
+        let mut lb: NaiveLeakyBucket = NaiveLeakyBucketConfig::new(0, Duration::from_secs(1)).into();
         assert!(lb.push().is_err())
     }
     #[test]
     fn size_3() {
-        let mut lb = NaiveLeakyBucket::new(3, Duration::from_secs(10));
+        let mut lb: NaiveLeakyBucket = NaiveLeakyBucketConfig::new(3, Duration::from_secs(10)).into();
         for _ in 0..3 {
             assert!(lb.push().is_ok());
         }
@@ -78,7 +94,7 @@ mod test {
     }
     #[test]
     fn expire_1() {
-        let mut lb = NaiveLeakyBucket::new(2, Duration::from_millis(100));
+        let mut lb: NaiveLeakyBucket = NaiveLeakyBucketConfig::new(2, Duration::from_millis(100)).into();
         assert!(lb.push().is_ok()); // len: 0
         sleep(Duration::from_millis(40));
         assert!(lb.push().is_ok()); // len: 1

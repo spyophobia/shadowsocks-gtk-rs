@@ -1,6 +1,6 @@
 ## Stay Safe!
 
-As you may know, Shadowsocks is an ecosystem of software that is adversarial in nature. You might even say it's political in nature. It was built to fight against one opponent and one opponent only (a very powerful one, mind you). This opponent would go to great lengths to make sure that the values advocated by Shadowsocks is completely snuffed and buried, using methods including but not limited to:
+As you may know, Shadowsocks is an ecosystem of software that is adversarial in nature. You might even say it's political in nature. It was built to fight against one opponent and one opponent only (a very powerful one, mind you) - People's Republic of China's great censoring machine. This opponent would go to great lengths to make sure that the values advocated by Shadowsocks is completely snuffed and buried, using methods including but not limited to:
 
  - [forced censorship of any mention of Shadowsocks anywhere it can](https://web.archive.org/web/20210307021605/https://www.baidu.com/s?ie=UTF-8&wd=shadowsocks);
  - [develop sophisticated, specifically-targeted systems (active & passive) to detect and ban Shadowsocks traffic](https://web.archive.org/web/20201204181712/https://blog.torproject.org/learning-more-about-gfws-active-probing-system);
@@ -11,7 +11,7 @@ Therefore it is not far-fetched at all to consider the possibility that our adve
 
 GPL, the license used by this project, is a strong "copyleft" license, meaning that it aggressively promotes open sourcing by compelling all derivative works to also be open source. In simple English, if you compiled your version of this program and share it with others, you must also share your source code, whether or not you have made any changes. This ensures that all legitimate distributions of this software are subject to public scrutiny. ***If you see a distribution of this piece of software without its source code, consider the distributor HOSTILE and delete their files IMMEDIATELY. They may pose an EXISTENTIAL THREAT to your liberty and livelihood. This is NOT a joke.***
 
-That being said, we developers and users of Shadowsocks are not so easily intimidated. I would like quote an excerpt from *"Do You Hear The People Sing?"* which I believe embodies our views on this matter very well:
+That being said, we developers and users of Shadowsocks are not so easily intimidated. I know it's cheesy, but still I would like to quote an excerpt from *"Do You Hear The People Sing?"* which I believe embodies our views on this matter very well:
 
 > *Will you join in our crusade? Who will be strong and stand with me?*
 > *Beyond the barricade is there a world you long to see?*

@@ -16,7 +16,7 @@ For an example of how to write a `profile.yaml`, see [example_config/A-good-prof
 ### Grouped multi-profile config
 ```
 # An example
-My-group
+Root-group
 ├── My-profile-A
 │   ├── profile.yaml
 │   └── ...<other files>
@@ -49,5 +49,7 @@ More seriously though, because it's a stable API and it works. What more can you
 
 Also making UI is painful. There are so many different flags and arguments you can set, and it will take me forever to create a UI element for each of them. Much easier instead, to create UI elements for the most commonly used items, while also giving more advanced users the option to specify more obscure settings using CLI arguments directly.
 
+As an unintentional by-product, this also means you can just as well specify any other executable with arbitrary arguments, and this app will happily run it for you. It will just make all the fancy GUI settings useless.
+
 ## Why do I only use English?
-It's complicated. I will not answer this question for the sake of my privacy and security.
+It's complicated. I choose not to answer this question for the sake of my privacy and security.

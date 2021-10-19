@@ -4,6 +4,7 @@ use std::{
     time::Duration,
 };
 
+use clap::ArgMatches;
 use config_loader::ConfigFolder;
 
 use crate::{
@@ -22,18 +23,7 @@ fn main() -> Result<(), String> {
     let clap_matches = clap_def::build_app().get_matches();
 
     // init logger
-    let mut verbosity = clap_def::DEFAULT_LOG_VERBOSITY;
-    verbosity += clap_matches.occurrences_of("verbose") as i32;
-    verbosity -= clap_matches.occurrences_of("quiet") as i32;
-    match verbosity {
-        // never produces error on first call of init
-        0 => simple_logger::init_with_level(log::Level::Error).unwrap(),
-        1 => simple_logger::init_with_level(log::Level::Warn).unwrap(),
-        2 => simple_logger::init_with_level(log::Level::Info).unwrap(),
-        3 => simple_logger::init_with_level(log::Level::Debug).unwrap(),
-        4..=i32::MAX => simple_logger::init_with_level(log::Level::Trace).unwrap(),
-        _ => (), // negative == disable logging by skipping init
-    };
+    logger_init(&clap_matches);
 
     // load profiles
     let profiles_dir = clap_matches.value_of("profiles-dir").unwrap(); // clap sets default
@@ -58,6 +48,25 @@ fn main() -> Result<(), String> {
     gtk::main();
 
     Ok(())
+}
+
+fn logger_init(matches: &ArgMatches) {
+    use log::Level::*;
+
+    let mut verbosity = clap_def::DEFAULT_LOG_VERBOSITY;
+    verbosity += matches.occurrences_of("verbose") as i32;
+    verbosity -= matches.occurrences_of("quiet") as i32;
+    let level = match verbosity {
+        0 => Some(Error),
+        1 => Some(Warn),
+        2 => Some(Info),
+        3 => Some(Debug),
+        4.. => Some(Trace),
+        _ => None, // negative == disable logging
+    };
+    if let Some(l) = level {
+        simple_logger::init_with_level(l).unwrap(); // never produces error on first call of init
+    }
 }
 
 #[cfg(test)]

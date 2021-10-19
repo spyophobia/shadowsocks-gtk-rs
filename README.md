@@ -20,6 +20,7 @@ You will need to first install: `rust`, `shadowsocks-rust`, `GTK3`, and `libappi
  - For `rust`, see [here](https://www.rust-lang.org/tools/install).
  - For `shadowsocks-rust`, see [here](https://www.rust-lang.org/tools/install). Strictly speaking, this is only required at runtime.
  - For `GTK3` and `libappindicator`, use your distro's package manager.
+
 | Distro        | GTK3           | libappindicator        |
 | ------------- | -------------- | ---------------------- |
 | Arch `pacman` | `gtk3`         | `libappindicator-gtk3` |

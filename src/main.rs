@@ -8,14 +8,15 @@ use clap::ArgMatches;
 use config_loader::ConfigFolder;
 
 use crate::{
+    gui::*,
     profile_manager::{OnFailure, ProfileManager},
     util::NaiveLeakyBucketConfig,
 };
 
 mod clap_def;
 mod config_loader;
+mod gui;
 mod profile_manager;
-mod tray;
 mod util;
 
 fn main() -> Result<(), String> {

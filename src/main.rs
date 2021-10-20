@@ -1,4 +1,5 @@
 use std::{
+    path::Path,
     sync::{Arc, RwLock},
     thread,
     time::Duration,
@@ -6,6 +7,7 @@ use std::{
 
 use clap::ArgMatches;
 use config_loader::ConfigFolder;
+use log::warn;
 
 use crate::{
     gui::*,
@@ -45,7 +47,18 @@ fn main() -> Result<(), String> {
 
     // start GUI
     gtk::init().unwrap();
-    let _tray_item = tray::build_and_show(profile_manager, &cf);
+    let icon_name = clap_matches.value_of("tray-icon-filename").unwrap(); // clap sets default
+    let icon_theme_dir_abs = clap_matches
+        .value_of("icon-theme-dir")
+        .and_then(|p| match Path::new(p).canonicalize() {
+            Ok(p) => p.to_str().map(|s| s.to_string()),
+            Err(err) => {
+                warn!("Cannot resolve the specified icon theme directory: {}", err);
+                warn!("Reverting back to system setting - you may get a blank icon");
+                None
+            }
+        });
+    let _tray_item = tray::build_and_show(&cf, &icon_name, icon_theme_dir_abs.as_deref(), profile_manager);
     gtk::main();
 
     Ok(())

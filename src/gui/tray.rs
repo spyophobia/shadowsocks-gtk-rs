@@ -1,9 +1,6 @@
 //! This module contains code that creates a tray item.
 
-use std::{
-    path::Path,
-    sync::{Arc, RwLock},
-};
+use std::sync::{Arc, RwLock};
 
 use gtk::{GtkMenuItemExt, Menu, MenuItem, MenuShellExt, WidgetExt};
 use libappindicator::{AppIndicator, AppIndicatorStatus};
@@ -21,9 +18,12 @@ impl TrayItem {
     /// Create a new `TrayItem` without showing it.
     ///
     /// The tray item will only be shown when it contains items.
-    pub fn new(title: &str, icon: &str, theme_path: &str) -> Self {
+    pub fn new(title: &str, icon: &str, theme_path: Option<&str>) -> Self {
         let mut tray_item = Self {
-            ai: AppIndicator::with_path(title, icon, theme_path),
+            ai: match theme_path {
+                Some(p) => AppIndicator::with_path(title, icon, p),
+                None => AppIndicator::new(title, icon),
+            },
             menu: Menu::new(),
         };
         tray_item.ai.set_status(AppIndicatorStatus::Active);
@@ -55,15 +55,14 @@ impl TrayItem {
 /// Build the tray item and show it, returning the `TrayItem`.
 ///
 /// Should only be called once.
-pub fn build_and_show(profile_manager: Arc<RwLock<ProfileManager>>, config_folder: &ConfigFolder) -> TrayItem {
+pub fn build_and_show(
+    config_folder: &ConfigFolder,
+    icon_name: &str,
+    icon_theme_dir: Option<&str>,
+    profile_manager: Arc<RwLock<ProfileManager>>,
+) -> TrayItem {
     // create tray with icon
-    // TODO: parameterise theme path & icon path
-    let icon_dir_abs = Path::new("./res/logo").canonicalize().expect("Bad icon dir");
-    let mut tray = TrayItem::new(
-        "Shadowsocks GTK Client",
-        "shadowsocks-gtk-client.png",
-        icon_dir_abs.to_str().expect("Non-UTF8 dir"),
-    );
+    let mut tray = TrayItem::new("Shadowsocks GTK Client", icon_name, icon_theme_dir);
 
     // add dynamic profiles
     tray.add_label("--Profiles--");

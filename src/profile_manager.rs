@@ -250,6 +250,7 @@ impl ProfileManager {
     }
 
     /// Indicate whether a `sslocal` instance is currently running.
+    #[allow(dead_code)]
     pub fn is_active(&self) -> bool {
         self.active_instance
             .read()

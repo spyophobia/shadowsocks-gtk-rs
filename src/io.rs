@@ -1,2 +1,2 @@
-pub mod app_state_manager;
+pub mod app_state;
 pub mod config_loader;

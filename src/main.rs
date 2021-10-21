@@ -6,10 +6,10 @@ use std::{
 
 use clap::ArgMatches;
 use gui::tray;
-use log::warn;
+use log::{error, warn};
 use profile_manager::ProfileManager;
 
-use crate::io::{app_state_manager::AppState, config_loader::ConfigFolder};
+use crate::io::{app_state::AppState, config_loader::ConfigFolder};
 
 mod clap_def;
 mod gui;
@@ -30,10 +30,10 @@ fn main() -> Result<(), String> {
         ConfigFolder::from_path_recurse(dir).map_err(|err| format!("{:?}", err))?
     };
 
-    // resume app state
+    // load app state and resume
+    let app_state_path = clap_matches.value_of("app-state-path").unwrap(); // clap sets default
     let pm = {
-        let settings_path = clap_matches.value_of("app-settings-path").unwrap(); // clap sets default
-        let previous_state = AppState::from_file(settings_path).unwrap(); // Ok guaranteed by clap validator
+        let previous_state = AppState::from_file(app_state_path).unwrap(); // Ok guaranteed by clap validator
         ProfileManager::resume_from(&previous_state, &config_folder.get_profiles())
     };
 
@@ -50,14 +50,7 @@ fn main() -> Result<(), String> {
     gui_run(&clap_matches, &config_folder, Arc::clone(&pm_arc));
 
     // cleanup
-    let _ = pm_arc
-        .write()
-        .unwrap_or_else(|err| {
-            warn!("Write lock on profile manager poisoned, recovering");
-            err.into_inner()
-        })
-        .stop();
-    // TODO: save app state
+    cleanup(pm_arc, app_state_path);
 
     Ok(())
 }
@@ -103,6 +96,22 @@ fn gui_run(clap_matches: &ArgMatches, config_folder: &ConfigFolder, profile_mana
         profile_manager,
     );
     gtk::main();
+}
+
+fn cleanup<P>(profile_manager: Arc<RwLock<ProfileManager>>, save_path: P)
+where
+    P: AsRef<Path>,
+{
+    let mut pm = profile_manager.write().unwrap_or_else(|err| {
+        warn!("Write lock on profile manager poisoned, recovering");
+        err.into_inner()
+    });
+    // save app state
+    if let Err(err) = pm.snapshot().write_to_file(save_path) {
+        error!("Failed to save app state: {}", err);
+    };
+    // stop any running `sslocal` process
+    let _ = pm.stop();
 }
 
 #[cfg(test)]

@@ -5,5 +5,5 @@ mkdir "./local-run"
 cargo run --release -- \
   -v \
   --profiles-dir "./example-config-profiles" \
-  --app-settings "./local-run/app-settings.yaml" \
+  --app-state "./local-run/app-state.yaml" \
   --icon-theme-dir "./res/logo"

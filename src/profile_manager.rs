@@ -18,7 +18,7 @@ use nix::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    io::{app_state_manager::AppState, config_loader::ConfigProfile},
+    io::{app_state::AppState, config_loader::ConfigProfile},
     util::leaky_bucket::{NaiveLeakyBucket, NaiveLeakyBucketConfig},
 };
 
@@ -250,6 +250,7 @@ impl ProfileManager {
         }
     }
 
+    /// Resume from a previously saved state.
     pub fn resume_from(state: &AppState, profiles: &[&ConfigProfile]) -> Self {
         let mut pm = Self::new(state.on_fail);
         match state.most_recent_profile.as_str() {
@@ -462,6 +463,15 @@ impl ProfileManager {
         self.daemon_handles.push(handle);
 
         Ok(())
+    }
+
+    /// Export the current state of `Self`.
+    pub fn snapshot(&self) -> AppState {
+        let profile_name = self.current_profile().map_or("".into(), |p| p.display_name.unwrap());
+        AppState {
+            most_recent_profile: profile_name,
+            on_fail: self.on_fail,
+        }
     }
 
     /// Stop the `sslocal` instance if active.

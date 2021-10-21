@@ -7,7 +7,7 @@ use std::{
 
 use clap::{crate_version, App, AppSettings, Arg};
 
-use crate::io::app_state_manager::AppState;
+use crate::io::app_state::AppState;
 
 /// Build a clap app. Only call once.
 pub fn build_app() -> App<'static, 'static> {
@@ -52,11 +52,11 @@ pub fn build_app() -> App<'static, 'static> {
         .arg({
             let default_val: &'static str = {
                 let mut path = default_config_dir.clone();
-                path.push("app-settings.yaml");
-                Box::leak(path.to_str().expect("default app-settings-path not UTF-8").into())
+                path.push("app-state.yaml");
+                Box::leak(path.to_str().expect("default app-state-path not UTF-8").into())
             };
-            Arg::with_name("app-settings-path")
-                .long("app-settings")
+            Arg::with_name("app-state-path")
+                .long("app-state")
                 .takes_value(true)
                 .default_value(default_val)
                 .validator(move |arg| {
@@ -67,7 +67,7 @@ pub fn build_app() -> App<'static, 'static> {
                             Ok(_state) => Ok(()),
                             Err(err) => {
                                 println!(
-                                    "[Pre-init] error while parsing default app-settings file ({}): {}, \
+                                    "[Pre-init] error while parsing default app-state file ({}): {}, \
                                     resetting with default",
                                     &arg, err
                                 );
@@ -77,7 +77,7 @@ pub fn build_app() -> App<'static, 'static> {
                     } else if !Path::new(&arg).exists() {
                         // if the specified file doesn't exist
                         println!(
-                            "[Pre-init] the specified app-settings file ({}) doesn't exist, \
+                            "[Pre-init] the specified app-state file ({}) doesn't exist, \
                             trying to create new with default",
                             &arg
                         );
@@ -89,7 +89,7 @@ pub fn build_app() -> App<'static, 'static> {
                     .map_err(|err| err.to_string())
                 })
                 .help(
-                    "Load and store app settings from&to a custom file path. \
+                    "Load and store app state from&to a custom file path. \
                     Useful if you want to run multiple instances",
                 )
         })

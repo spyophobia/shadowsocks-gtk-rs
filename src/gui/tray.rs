@@ -3,7 +3,6 @@
 use std::sync::{Arc, RwLock};
 
 use gtk::{prelude::*, Menu, MenuItem, SeparatorMenuItem};
-// use gtk::{GtkMenuItemExt, Menu, MenuItem, MenuShellExt, SeparatorMenuItem, WidgetExt};
 use libappindicator::{AppIndicator, AppIndicatorStatus};
 use log::{error, info, warn};
 

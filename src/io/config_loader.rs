@@ -191,7 +191,6 @@ impl ConfigFolder {
 
     /// Recursively get all the nested profiles within this `ConfigFolder`,
     /// flattened and returned by reference.
-    #[allow(dead_code)]
     pub fn get_profiles(&self) -> Vec<&ConfigProfile> {
         match self {
             ConfigFolder::Profile(p) => vec![p],

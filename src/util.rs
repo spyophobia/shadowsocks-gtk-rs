@@ -5,6 +5,8 @@ use std::{
     time::{Duration, Instant},
 };
 
+use serde::{Deserialize, Serialize};
+
 #[derive(Debug, Clone)]
 pub struct LeakyBucketOverflowed {
     times: usize,
@@ -27,7 +29,7 @@ impl From<&NaiveLeakyBucket> for LeakyBucketOverflowed {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct NaiveLeakyBucketConfig {
     times: usize,
     within: Duration,

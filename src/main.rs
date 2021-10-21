@@ -2,22 +2,18 @@ use std::{
     path::Path,
     sync::{Arc, RwLock},
     thread,
-    time::Duration,
 };
 
 use clap::ArgMatches;
-use config_loader::ConfigFolder;
+use gui::tray;
 use log::warn;
+use profile_manager::ProfileManager;
 
-use crate::{
-    gui::*,
-    profile_manager::{OnFailure, ProfileManager},
-    util::NaiveLeakyBucketConfig,
-};
+use crate::io::{app_state_manager::AppState, config_loader::ConfigFolder};
 
 mod clap_def;
-mod config_loader;
 mod gui;
+mod io;
 mod profile_manager;
 mod util;
 
@@ -29,37 +25,39 @@ fn main() -> Result<(), String> {
     logger_init(&clap_matches);
 
     // load profiles
-    let profiles_dir = clap_matches.value_of("profiles-dir").unwrap(); // clap sets default
-    let cf = ConfigFolder::from_path_recurse(profiles_dir).map_err(|err| format!("{:?}", err))?;
-
-    // start ProfileManager
-    let on_fail = OnFailure::Restart {
-        limit: NaiveLeakyBucketConfig::new(3, Duration::from_secs(10)),
+    let config_folder = {
+        let dir = clap_matches.value_of("profiles-dir").unwrap(); // clap sets default
+        ConfigFolder::from_path_recurse(dir).map_err(|err| format!("{:?}", err))?
     };
-    let mgr = ProfileManager::new(on_fail);
+
+    // resume app state
+    let pm = {
+        let settings_path = clap_matches.value_of("app-settings-path").unwrap(); // clap sets default
+        let previous_state = AppState::from_file(settings_path).unwrap(); // Ok guaranteed by clap validator
+        ProfileManager::resume_from(&previous_state, &config_folder.get_profiles())
+    };
+
     // TEMP: pipe output
-    let stdout = mgr.stdout_rx.clone();
-    let stderr = mgr.stderr_rx.clone();
+    let stdout = pm.stdout_rx.clone();
+    let stderr = pm.stderr_rx.clone();
     thread::spawn(move || stdout.iter().for_each(|s| println!("stdout: {}", s)));
     thread::spawn(move || stderr.iter().for_each(|s| println!("stderr: {}", s)));
+
     // wrap in smart pointer
-    let profile_manager = Arc::new(RwLock::new(mgr));
+    let pm_arc = Arc::new(RwLock::new(pm));
 
     // start GUI
-    gtk::init().unwrap();
-    let icon_name = clap_matches.value_of("tray-icon-filename").unwrap(); // clap sets default
-    let icon_theme_dir_abs = clap_matches
-        .value_of("icon-theme-dir")
-        .and_then(|p| match Path::new(p).canonicalize() {
-            Ok(p) => p.to_str().map(|s| s.to_string()),
-            Err(err) => {
-                warn!("Cannot resolve the specified icon theme directory: {}", err);
-                warn!("Reverting back to system setting - you may get a blank icon");
-                None
-            }
-        });
-    let _tray_item = tray::build_and_show(&cf, &icon_name, icon_theme_dir_abs.as_deref(), profile_manager);
-    gtk::main();
+    gui_run(&clap_matches, &config_folder, Arc::clone(&pm_arc));
+
+    // cleanup
+    let _ = pm_arc
+        .write()
+        .unwrap_or_else(|err| {
+            warn!("Write lock on profile manager poisoned, recovering");
+            err.into_inner()
+        })
+        .stop();
+    // TODO: save app state
 
     Ok(())
 }
@@ -83,6 +81,28 @@ fn logger_init(matches: &ArgMatches) {
     }
 }
 
+fn gui_run(clap_matches: &ArgMatches, config_folder: &ConfigFolder, profile_manager: Arc<RwLock<ProfileManager>>) {
+    gtk::init().unwrap();
+    let icon_name = clap_matches.value_of("tray-icon-filename").unwrap(); // clap sets default
+    let icon_theme_dir_abs = clap_matches
+        .value_of("icon-theme-dir")
+        .and_then(|p| match Path::new(p).canonicalize() {
+            Ok(p) => p.to_str().map(|s| s.to_string()),
+            Err(err) => {
+                warn!("Cannot resolve the specified icon theme directory: {}", err);
+                warn!("Reverting back to system setting - you may get a blank icon");
+                None
+            }
+        });
+    let _tray_item = tray::build_and_show(
+        config_folder,
+        &icon_name,
+        icon_theme_dir_abs.as_deref(),
+        profile_manager,
+    );
+    gtk::main();
+}
+
 #[cfg(test)]
 mod test {
     use std::{
@@ -93,7 +113,7 @@ mod test {
     use log::debug;
 
     use crate::{
-        config_loader::ConfigFolder,
+        io::config_loader::ConfigFolder,
         profile_manager::{OnFailure, ProfileManager},
         util::NaiveLeakyBucketConfig,
     };
@@ -106,8 +126,7 @@ mod test {
         simple_logger::init().unwrap();
 
         // parse example configs
-        let eg_configs = ConfigFolder::from_path_recurse("example_config_profiles").unwrap();
-        let eg_configs = Box::leak(Box::new(eg_configs));
+        let eg_configs = ConfigFolder::from_path_recurse("example-config-profiles").unwrap();
         let profile_list = eg_configs.get_profiles();
         debug!("Loaded {:?} profiles.", profile_list.len());
 

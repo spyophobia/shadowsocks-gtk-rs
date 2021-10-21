@@ -6,7 +6,7 @@ use gtk::{GtkMenuItemExt, Menu, MenuItem, MenuShellExt, WidgetExt};
 use libappindicator::{AppIndicator, AppIndicatorStatus};
 use log::{error, info, warn};
 
-use crate::{config_loader::ConfigFolder, profile_manager::ProfileManager};
+use crate::{io::config_loader::ConfigFolder, profile_manager::ProfileManager};
 
 #[cfg(target_os = "linux")]
 pub struct TrayItem {
@@ -119,7 +119,7 @@ fn menu_tree_from_config_folder_recurse(
                 let switch_res = profile_manager
                     .write()
                     .unwrap_or_else(|err| {
-                        warn!("Write lock on active instance poisoned, recovering");
+                        warn!("Write lock on profile manager poisoned, recovering");
                         err.into_inner()
                     })
                     .switch_to(profile.clone()); // not sure why I have to clone twice but this works

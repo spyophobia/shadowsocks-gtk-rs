@@ -15,9 +15,10 @@ use nix::{
     sys::signal::{self, Signal},
     unistd::Pid,
 };
+use serde::{Deserialize, Serialize};
 
 use crate::{
-    config_loader::ConfigProfile,
+    io::{app_state_manager::AppState, config_loader::ConfigProfile},
     util::{NaiveLeakyBucket, NaiveLeakyBucketConfig},
 };
 
@@ -181,7 +182,7 @@ impl ActiveSSInstance {
 }
 
 /// What to do when a `sslocal` instance fails with a non-0 exit code.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum OnFailure {
     /// Set `ProfileManager` to inactive state on failure.
     Halt { prompt: bool },
@@ -247,6 +248,25 @@ impl ProfileManager {
             stderr_rx,
             daemon_handles: vec![],
         }
+    }
+
+    pub fn resume_from(state: &AppState, profiles: &[&ConfigProfile]) -> Self {
+        let mut pm = Self::new(state.on_fail);
+        match state.most_recent_profile.as_str() {
+            "" => info!("Most recent profile is none; will not attempt to resume"),
+            name => {
+                let name_hit = profiles.iter().find(|&&p| p.display_name.as_ref().unwrap() == name);
+                match name_hit {
+                    Some(&p) => {
+                        if let Err(err) = pm.switch_to(p.clone()) {
+                            error!("Cannot resume - switch to profile \"{}\" failed: {}", name, err);
+                        }
+                    }
+                    None => warn!("Cannot resume - profile \"{}\" not found", name),
+                }
+            }
+        };
+        pm
     }
 
     /// Indicate whether a `sslocal` instance is currently running.

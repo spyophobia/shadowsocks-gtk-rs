@@ -2,6 +2,7 @@
 
 use std::{
     ffi::OsString,
+    fmt::Display,
     fs::read_to_string,
     io,
     path::{Path, PathBuf},
@@ -79,6 +80,19 @@ pub enum ConfigLoadError {
     EmptyGroup(String),
     /// The filesystem encountered an IOError.
     IOError(io::Error),
+}
+impl Display for ConfigLoadError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use ConfigLoadError::*;
+
+        match self {
+            NotDirectory(s) => write!(f, "ConfigLoadError-NotDirectory: {}", s),
+            ProfileParseError(e) => write!(f, "ConfigLoadError-ProfileParseError: {}", e),
+            NoProfileDef(s) => write!(f, "ConfigLoadError-NoProfileDef: {}", s),
+            EmptyGroup(s) => write!(f, "ConfigLoadError-EmptyGroup: {}", s),
+            IOError(e) => write!(f, "ConfigLoadError-IOError: {}", e),
+        }
+    }
 }
 impl From<serde_yaml::Error> for ConfigLoadError {
     fn from(err: serde_yaml::Error) -> Self {
@@ -159,7 +173,7 @@ impl ConfigFolder {
         let has_files = path.read_dir()?.any(|ent_res| match ent_res {
             Ok(ent) => ent.path().is_file(),
             Err(err) => {
-                warn!("Cannot open a file or directory: {:?}", err);
+                warn!("Cannot open a file or directory: {}", err);
                 false
             }
         });
@@ -174,9 +188,9 @@ impl ConfigFolder {
             match ent_res {
                 Ok(ent) => match Self::from_path_recurse(ent.path()) {
                     Ok(cf) => subdirs.push(cf),
-                    Err(err) => warn!("Cannot load a subdirectory: {:?}", err),
+                    Err(err) => warn!("Cannot load a subdirectory: {}", err),
                 },
-                Err(err) => warn!("Cannot open a file or directory: {:?}", err),
+                Err(err) => warn!("Cannot open a file or directory: {}", err),
             }
         }
         if subdirs.is_empty() {

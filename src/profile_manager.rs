@@ -105,7 +105,7 @@ impl ActiveSSInstance {
             .name(format!("{} piper daemon for instance {}", source_type, self_name))
             .spawn(move || {
                 for line_res in source.lines() {
-                    let line = line_res.unwrap_or_else(|err| format!("Error reading {}: {:?}", &source_type, err));
+                    let line = line_res.unwrap_or_else(|err| format!("Error reading {}: {}", &source_type, err));
                     if let Err(err) = tx.send(line) {
                         warn!(
                             "Instance {} wrote to {}, but all receivers have hung up. Piper daemon stopping.",
@@ -435,7 +435,7 @@ impl ProfileManager {
                             Ok(p) => p,
                             Err(err) => {
                                 error!(
-                                    "Failed to restart with profile \"{}\": {:?}. Failure monitor daemon stopping",
+                                    "Failed to restart with profile \"{}\": {}. Failure monitor daemon stopping",
                                     profile_name, err
                                 );
                                 break;

@@ -27,7 +27,7 @@ fn main() -> Result<(), String> {
     // load profiles
     let config_folder = {
         let dir = clap_matches.value_of("profiles-dir").unwrap(); // clap sets default
-        ConfigFolder::from_path_recurse(dir).map_err(|err| format!("{:?}", err))?
+        ConfigFolder::from_path_recurse(dir).map_err(|err| err.to_string())?
     };
 
     // load app state and resume
@@ -139,7 +139,7 @@ mod test {
         // parse example configs
         let eg_configs = ConfigFolder::from_path_recurse("example-config-profiles").unwrap();
         let profile_list = eg_configs.get_profiles();
-        debug!("Loaded {:?} profiles.", profile_list.len());
+        debug!("Loaded {} profiles.", profile_list.len());
 
         // setup ProfileManager
         let on_fail = OnFailure::Restart {

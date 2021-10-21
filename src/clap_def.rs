@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use clap::{crate_version, App, AppSettings, Arg};
+use clap::{crate_authors, crate_description, crate_name, crate_version, App, AppSettings, Arg};
 
 use crate::io::app_state::AppState;
 
@@ -17,10 +17,10 @@ pub fn build_app() -> App<'static, 'static> {
         dir
     };
 
-    App::new("shadowsocks-gtk-client")
+    App::new(crate_name!())
         .version(crate_version!())
-        .author("spyophobia <76800505+spyophobia@users.noreply.github.com>")
-        .about("A desktop GUI frontend for shadowsocks-rust client implemented with gtk-rs.")
+        .author(crate_authors!())
+        .about(crate_description!())
         .settings(&[
             AppSettings::AllowNegativeNumbers,
             AppSettings::ArgRequiredElseHelp,

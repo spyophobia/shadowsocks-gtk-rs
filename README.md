@@ -35,7 +35,12 @@ If you are using any recent version of Gnome as your desktop environment, you al
 cd /my/code/directory
 git clone https://github.com/spyophobia/shadowsocks-gtk-client.git
 cd shadowsocks-gtk-client
+```
+
+```sh
 cargo run --release -- --help
+# or test locally in the project directory
+./run-local.sh
 ```
 
 If you are using this application for the first time, you probably want to read the [configuration guide](res/QnA.md#how-to-customise-configuration) first.

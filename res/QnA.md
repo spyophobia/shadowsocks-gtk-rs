@@ -12,7 +12,7 @@ We will call this a "profile directory". You can name this directory anything yo
 
 `profile.yaml` is the definition file for a profile: a directory is considered a "profile directory" only if it contains a `profile.yaml`. You may put other profile-specific files and directories under this directory too if you need to reference them from `profile.yaml`, such as a `ss-config.json`.
 
-For an example of how to write a `profile.yaml`, see [example_config/A-good-profile](example_config/A-good-profile).
+For an example of how to write a `profile.yaml`, see [example-config-profiles/A-good-profile](example-config-profiles/A-good-profile).
 ### Grouped multi-profile config
 ```
 # An example

@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     io::{app_state_manager::AppState, config_loader::ConfigProfile},
-    util::{NaiveLeakyBucket, NaiveLeakyBucketConfig},
+    util::leaky_bucket::{NaiveLeakyBucket, NaiveLeakyBucketConfig},
 };
 
 /// Represents a currently running `sslocal` instance, storing the relevant information

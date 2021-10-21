@@ -2,7 +2,7 @@ use std::{fmt::Display, fs, io, path::Path, time::Duration};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{profile_manager::OnFailure, util::NaiveLeakyBucketConfig};
+use crate::{profile_manager::OnFailure, util::leaky_bucket::NaiveLeakyBucketConfig};
 
 #[derive(Debug)]
 pub enum AppStateError {

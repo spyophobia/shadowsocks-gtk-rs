@@ -17,6 +17,9 @@ mod io;
 mod profile_manager;
 mod util;
 
+/// 0: `Error`, 1: `Warn`, 2: `Info`, 3: `Debug`, 4: `Trace`
+pub const DEFAULT_LOG_VERBOSITY: i32 = 2;
+
 fn main() -> Result<(), String> {
     // init clap app
     let clap_matches = clap_def::build_app().get_matches();
@@ -46,7 +49,7 @@ fn main() -> Result<(), String> {
     // wrap in smart pointer
     let pm_arc = Arc::new(RwLock::new(pm));
 
-    // start GUI
+    // start GUI loop
     gui_run(&clap_matches, &config_folder, Arc::clone(&pm_arc));
 
     // cleanup
@@ -65,7 +68,7 @@ fn main() -> Result<(), String> {
 fn logger_init(matches: &ArgMatches) {
     use log::Level::*;
 
-    let mut verbosity = clap_def::DEFAULT_LOG_VERBOSITY;
+    let mut verbosity = DEFAULT_LOG_VERBOSITY;
     verbosity += matches.occurrences_of("verbose") as i32;
     verbosity -= matches.occurrences_of("quiet") as i32;
     let level = match verbosity {
@@ -115,7 +118,7 @@ mod test {
     use crate::{
         io::config_loader::ConfigFolder,
         profile_manager::{OnFailure, ProfileManager},
-        util::NaiveLeakyBucketConfig,
+        util::leaky_bucket::NaiveLeakyBucketConfig,
     };
 
     /// This test will always pass. You need to examine the outputs manually.

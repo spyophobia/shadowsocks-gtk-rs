@@ -9,9 +9,6 @@ use clap::{crate_version, App, AppSettings, Arg};
 
 use crate::io::app_state_manager::AppState;
 
-/// 0: `Error`, 1: `Warn`, 2: `Info`, 3: `Debug`, 4: `Trace`
-pub const DEFAULT_LOG_VERBOSITY: i32 = 2;
-
 /// Build a clap app. Only call once.
 pub fn build_app() -> App<'static, 'static> {
     let default_config_dir = {

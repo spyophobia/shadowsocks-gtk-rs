@@ -69,6 +69,7 @@ pub fn build_and_show(
     profile_manager: Arc<RwLock<ProfileManager>>,
 ) -> TrayItem {
     // create tray with icon
+    // BUG: For some reason the title is not this?
     let mut tray = TrayItem::new("Shadowsocks GTK", icon_name, icon_theme_dir);
 
     // add stop button

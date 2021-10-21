@@ -2,7 +2,7 @@
 
 use std::sync::{Arc, RwLock};
 
-use gtk::{GtkMenuItemExt, Menu, MenuItem, MenuShellExt, WidgetExt};
+use gtk::{GtkMenuItemExt, Menu, MenuItem, MenuShellExt, SeparatorMenuItem, WidgetExt};
 use libappindicator::{AppIndicator, AppIndicatorStatus};
 use log::{error, info, warn};
 
@@ -13,7 +13,6 @@ pub struct TrayItem {
     ai: AppIndicator,
     menu: Menu,
 }
-#[allow(dead_code)]
 impl TrayItem {
     /// Create a new `TrayItem` without showing it.
     ///
@@ -30,23 +29,30 @@ impl TrayItem {
         tray_item
     }
 
+    /// Append a separator to the tray item's menu.
+    fn add_separator(&mut self) {
+        let sep = SeparatorMenuItem::new();
+        self.menu.append(&sep);
+    }
     /// Append a non-clickable label to the tray item's menu.
-    pub fn add_label(&mut self, label: &str) {
+    fn add_label(&mut self, label: &str) {
         let item = MenuItem::with_label(label.as_ref());
         item.set_sensitive(false);
         self.menu.append(&item);
-        self.menu.show_all();
-        self.ai.set_menu(&mut self.menu);
     }
     /// Append a clickable item to the tray item's menu,
     /// which will invoke the specified action when clicked.
-    pub fn add_menu_item<F>(&mut self, label: &str, action: F)
+    fn add_menu_item<F>(&mut self, label: &str, action: F)
     where
         F: Fn() -> () + Send + Sync + 'static,
     {
         let item = MenuItem::with_label(label);
         item.connect_activate(move |_| action());
         self.menu.append(&item);
+    }
+
+    /// Compose the menu to make ready for display.
+    fn finalise(&mut self) {
         self.menu.show_all();
         self.ai.set_menu(&mut self.menu);
     }
@@ -64,14 +70,30 @@ pub fn build_and_show(
     // create tray with icon
     let mut tray = TrayItem::new("Shadowsocks GTK Client", icon_name, icon_theme_dir);
 
+    // add stop button
+    let pm_arc = Arc::clone(&profile_manager);
+    tray.add_menu_item("Stop sslocal", move || {
+        let mut pm = pm_arc.write().unwrap_or_else(|err| {
+            warn!("Write lock on profile manager poisoned, recovering");
+            err.into_inner()
+        });
+        if pm.is_active() {
+            info!("Sending stop signal to sslocal");
+            let _ = pm.try_stop();
+        } else {
+            info!("sslocal is not running; nothing to stop");
+        }
+    });
+    tray.add_separator();
+
     // add dynamic profiles
-    tray.add_label("--Profiles--");
-    for profile in menu_tree_from_root_config_folder(profile_manager, config_folder) {
+    tray.add_label("Profiles");
+    for profile in menu_tree_from_root_config_folder(Arc::clone(&profile_manager), config_folder) {
         tray.menu.append(&profile);
     }
+    tray.add_separator();
 
-    // add static menu entries
-    tray.add_label(&"-".repeat(16));
+    // add other static menu entries
     tray.add_menu_item("Show", || {
         // TODO: implement window
         error!("Not yet implemented!");
@@ -81,6 +103,8 @@ pub fn build_and_show(
         gtk::main_quit();
     });
 
+    // Wrap up
+    tray.finalise();
     tray
 }
 
@@ -98,7 +122,7 @@ fn menu_tree_from_root_config_folder(
             .iter()
             .map(|cf| menu_tree_from_config_folder_recurse(Arc::clone(&profile_manager), cf))
             .collect(),
-        config_profile => vec![menu_tree_from_config_folder_recurse(profile_manager, config_profile)],
+        profile => vec![menu_tree_from_config_folder_recurse(profile_manager, profile)],
     }
 }
 

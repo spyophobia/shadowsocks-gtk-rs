@@ -224,7 +224,7 @@ impl Drop for ProfileManager {
         debug!("ProfileManager is getting dropped");
 
         // deactivate `sslocal` instance
-        let _ = self.stop();
+        let _ = self.try_stop();
 
         // make sure all daemon threads finish
         for handle in self.daemon_handles.drain(..) {
@@ -271,7 +271,6 @@ impl ProfileManager {
     }
 
     /// Indicate whether a `sslocal` instance is currently running.
-    #[allow(dead_code)]
     pub fn is_active(&self) -> bool {
         self.active_instance
             .read()
@@ -301,7 +300,7 @@ impl ProfileManager {
     /// If the new instance fails to start, this `ProfileManager` will be left in deactivated state.
     pub fn switch_to(&mut self, new_profile: ConfigProfile) -> io::Result<()> {
         // deactivate the old instance
-        let _ = self.stop();
+        let _ = self.try_stop();
 
         // activate the new instance
         let mut new_instance = ActiveSSInstance::new(new_profile)?;
@@ -477,7 +476,7 @@ impl ProfileManager {
     /// Stop the `sslocal` instance if active.
     ///
     /// Returns `Err(())` if already inactive.
-    pub fn stop(&mut self) -> Result<(), ()> {
+    pub fn try_stop(&mut self) -> Result<(), ()> {
         let instance = self
             .active_instance
             .write()

@@ -115,7 +115,7 @@ where
         error!("Failed to save app state: {}", err);
     };
     // stop any running `sslocal` process
-    let _ = pm.stop();
+    let _ = pm.try_stop();
 }
 
 #[cfg(test)]
@@ -163,6 +163,6 @@ mod test {
             mgr.switch_to(p.clone()).unwrap();
             sleep(Duration::from_millis(2500));
         }
-        let _ = mgr.stop();
+        let _ = mgr.try_stop();
     }
 }

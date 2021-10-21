@@ -3,7 +3,7 @@ authors = [
   "spyophobia <76800505+spyophobia@users.noreply.github.com>",
 ]
 description = "A desktop GUI frontend for shadowsocks-rust client implemented with gtk-rs."
-edition = "2018"
+edition = "2021"
 name = "shadowsocks-gtk-client"
 version = "0.1.0"
 

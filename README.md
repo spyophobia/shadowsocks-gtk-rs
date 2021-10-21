@@ -1,4 +1,4 @@
-# shadowsocks-gtk-client
+# shadowsocks-gtk-rs
 
 A desktop GUI frontend for shadowsocks-rust client implemented with gtk-rs.
 
@@ -35,8 +35,8 @@ If you are using any recent version of Gnome as your desktop environment, you al
 
 ```sh
 cd /my/code/directory
-git clone https://github.com/spyophobia/shadowsocks-gtk-client.git
-cd shadowsocks-gtk-client
+git clone https://github.com/spyophobia/shadowsocks-gtk-rs.git
+cd shadowsocks-gtk-rs
 ```
 
 ```sh

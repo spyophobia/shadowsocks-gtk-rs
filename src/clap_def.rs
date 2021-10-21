@@ -13,7 +13,7 @@ use crate::io::app_state::AppState;
 pub fn build_app() -> App<'static, 'static> {
     let default_config_dir = {
         let mut dir = PathBuf::from(env::var("HOME").expect("$HOME not set"));
-        dir.push(".config/shadowsocks-gtk-client");
+        dir.push(".config/shadowsocks-gtk-rs");
         dir
     };
 
@@ -97,11 +97,11 @@ pub fn build_app() -> App<'static, 'static> {
             Arg::with_name("tray-icon-filename")
                 .long("icon-name")
                 .takes_value(true)
-                .default_value("shadowsocks-gtk-client")
+                .default_value("shadowsocks-gtk-rs")
                 .help("Search for a custom image to use for the tray icon"),
         )
         .arg(
-            // note to packager: you probably want to copy `res/logo/shadowsocks-gtk-client.png`
+            // note to packager: you probably want to copy `res/logo/shadowsocks-gtk-rs.png`
             // to `/usr/share/pixmap/` and not use this parameter
             Arg::with_name("icon-theme-dir")
                 .long("icon-theme-dir")

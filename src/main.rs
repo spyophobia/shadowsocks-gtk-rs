@@ -6,7 +6,7 @@ use std::{
 
 use clap::ArgMatches;
 use gui::tray;
-use log::{error, warn};
+use log::{debug, error, warn};
 use profile_manager::ProfileManager;
 
 use crate::io::{app_state::AppState, config_loader::ConfigFolder};
@@ -29,6 +29,10 @@ fn main() -> Result<(), String> {
         let dir = clap_matches.value_of("profiles-dir").unwrap(); // clap sets default
         ConfigFolder::from_path_recurse(dir).map_err(|err| err.to_string())?
     };
+    debug!(
+        "Successfully loaded {} profiles in total",
+        config_folder.profile_count()
+    );
 
     // load app state and resume
     let app_state_path = clap_matches.value_of("app-state-path").unwrap(); // clap sets default

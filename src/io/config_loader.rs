@@ -203,12 +203,22 @@ impl ConfigFolder {
         }
     }
 
+    /// Recursively count the number of nested profiles within this `ConfigFolder`.
+    pub fn profile_count(&self) -> usize {
+        use ConfigFolder::*;
+        match self {
+            Profile(_) => 1,
+            Group(g) => g.content.iter().map(|cf| cf.profile_count()).sum(),
+        }
+    }
+
     /// Recursively get all the nested profiles within this `ConfigFolder`,
     /// flattened and returned by reference.
     pub fn get_profiles(&self) -> Vec<&ConfigProfile> {
+        use ConfigFolder::*;
         match self {
-            ConfigFolder::Profile(p) => vec![p],
-            ConfigFolder::Group(g) => g.content.iter().flat_map(|cf| cf.get_profiles()).collect(),
+            Profile(p) => vec![p],
+            Group(g) => g.content.iter().flat_map(|cf| cf.get_profiles()).collect(),
         }
     }
 }

@@ -9,7 +9,7 @@ use std::{
     time::Duration,
 };
 
-use crossbeam_channel as cbc;
+use crossbeam_channel::{unbounded as unbounded_channel, Receiver, Sender};
 use log::{debug, error, info, warn};
 use nix::{
     sys::signal::{self, Signal},
@@ -95,7 +95,7 @@ impl ActiveSSInstance {
     /// The common implementation for `Self::pipe_stdout` & `Self::pipe_stderr`.
     ///
     /// Do not use directly.
-    fn pipe_any_impl<R>(&mut self, source: R, source_type: &'static str, tx: cbc::Sender<String>) -> io::Result<()>
+    fn pipe_any_impl<R>(&mut self, source: R, source_type: &'static str, tx: Sender<String>) -> io::Result<()>
     where
         R: Read + Send + 'static,
     {
@@ -121,7 +121,7 @@ impl ActiveSSInstance {
         Ok(())
     }
     /// Pipe all lines of `sslocal`'s `stdout` to a channel.
-    fn pipe_stdout(&mut self, tx: cbc::Sender<String>) -> io::Result<()> {
+    fn pipe_stdout(&mut self, tx: Sender<String>) -> io::Result<()> {
         let proc = self.sslocal_process.as_mut().ok_or_else(|| {
             io::Error::new(
                 io::ErrorKind::NotFound,
@@ -137,7 +137,7 @@ impl ActiveSSInstance {
         self.pipe_any_impl(stdout, "stdout", tx)
     }
     /// Pipe all lines of `sslocal`'s `stderr` to a channel.
-    fn pipe_stderr(&mut self, tx: cbc::Sender<String>) -> io::Result<()> {
+    fn pipe_stderr(&mut self, tx: Sender<String>) -> io::Result<()> {
         let proc = self.sslocal_process.as_mut().ok_or_else(|| {
             io::Error::new(
                 io::ErrorKind::NotFound,
@@ -158,13 +158,13 @@ impl ActiveSSInstance {
     ///
     /// This will consume `sslocal`'s process handle, so make sure to
     /// set up `stdout` & `stderr` piping first.
-    fn alert_on_exit(&mut self) -> io::Result<cbc::Receiver<ExitStatus>> {
+    fn alert_on_exit(&mut self) -> io::Result<Receiver<ExitStatus>> {
         let self_name = self.to_string();
         let mut proc = self
             .sslocal_process
             .take()
             .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "sslocal process handle already consumed"))?;
-        let (exit_tx, exit_rx) = cbc::unbounded();
+        let (exit_tx, exit_rx) = unbounded_channel();
         let handle = thread::Builder::new()
             .name(format!("exit alert daemon for instance {}", self_name))
             .spawn(move || {
@@ -204,13 +204,13 @@ pub struct ProfileManager {
 
     // pipes for the output of `sslocal`
     /// Receives `sslocal`'s `stdout`.
-    stdout_tx: cbc::Sender<String>,
+    stdout_tx: Sender<String>,
     /// Receives `sslocal`'s `stderr`.
-    stderr_tx: cbc::Sender<String>,
+    stderr_tx: Sender<String>,
     /// Clone me to handle `sslocal`'s `stdout`.
-    pub stdout_rx: cbc::Receiver<String>,
+    pub stdout_rx: Receiver<String>,
     /// Clone me to handle `sslocal`'s `stderr`.
-    pub stderr_rx: cbc::Receiver<String>,
+    pub stderr_rx: Receiver<String>,
 
     /// The daemon threads that need to be cleanup up when deactivating.
     daemon_handles: Vec<JoinHandle<()>>,
@@ -326,7 +326,7 @@ impl ProfileManager {
 
     /// Starts a monitoring thread that waits for the underlying `sslocal` instance
     /// to fail, when it will attempt to perform the action specified by `on_fail`.
-    pub fn set_on_fail(&mut self, listener: cbc::Receiver<ExitStatus>, on_fail: OnFailure) -> io::Result<()> {
+    pub fn set_on_fail(&mut self, listener: Receiver<ExitStatus>, on_fail: OnFailure) -> io::Result<()> {
         // variables that need to be moved into thread
         let instance = Arc::clone(&self.active_instance);
         let profile = self
@@ -414,9 +414,9 @@ impl ProfileManager {
                         /// Temporary helper builder function to simplify error handling.
                         fn start_pipe_alert(
                             profile: ConfigProfile,
-                            stdout_tx: cbc::Sender<String>,
-                            stderr_tx: cbc::Sender<String>,
-                            exit_listener: &mut cbc::Receiver<ExitStatus>,
+                            stdout_tx: Sender<String>,
+                            stderr_tx: Sender<String>,
+                            exit_listener: &mut Receiver<ExitStatus>,
                         ) -> io::Result<ActiveSSInstance> {
                             let mut instance = ActiveSSInstance::new(profile)?;
                             instance.pipe_stdout(stdout_tx)?;

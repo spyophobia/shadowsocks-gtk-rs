@@ -1,11 +1,16 @@
 {
   "cSpell.words": [
     "devel",
+    "hexpand",
+    "hscrollbar",
     "libgtk",
     "nocapture",
     "SIGINT",
     "spyophobia",
     "sslocal",
-    "unistd"
+    "unistd",
+    "vadjustment",
+    "vscrollbar",
+    "xalign"
   ]
 }

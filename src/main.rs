@@ -1,7 +1,6 @@
 use std::{
     path::Path,
     sync::{Arc, RwLock},
-    thread,
 };
 
 use clap::ArgMatches;
@@ -36,19 +35,11 @@ fn main() -> Result<(), String> {
 
     // load app state and resume
     let app_state_path = clap_matches.value_of("app-state-path").unwrap(); // clap sets default
-    let pm = {
+    let pm_arc = {
         let previous_state = AppState::from_file(app_state_path).unwrap(); // Ok guaranteed by clap validator
-        ProfileManager::resume_from(&previous_state, &config_folder.get_profiles())
+        let pm = ProfileManager::resume_from(&previous_state, &config_folder.get_profiles());
+        Arc::new(RwLock::new(pm))
     };
-
-    // TEMP: pipe output
-    let stdout = pm.stdout_rx.clone();
-    let stderr = pm.stderr_rx.clone();
-    thread::spawn(move || stdout.iter().for_each(|s| println!("stdout: {}", s)));
-    thread::spawn(move || stderr.iter().for_each(|s| println!("stderr: {}", s)));
-
-    // wrap in smart pointer
-    let pm_arc = Arc::new(RwLock::new(pm));
 
     // start GUI loop
     gui_run(&clap_matches, &config_folder, Arc::clone(&pm_arc));

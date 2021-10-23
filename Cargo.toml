@@ -17,6 +17,7 @@ libappindicator = "0.6.1"
 log = "0.4.14"
 # regex = "1.5.4"
 crossbeam-channel = "0.5.1"
+glib = "0.14.8"
 nix = "0.23.0"
 serde = {version = "1.0.130", features = ["derive"]}
 serde_yaml = "0.8.21"

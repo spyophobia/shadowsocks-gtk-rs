@@ -4,7 +4,7 @@ use std::{
     fmt::Display,
     io::{self, BufRead, BufReader, Read},
     process::{Child, ExitStatus, Stdio},
-    sync::{Arc, RwLock},
+    sync::{Arc, Mutex, RwLock},
     thread::{self, JoinHandle},
     time::Duration,
 };
@@ -95,7 +95,13 @@ impl ActiveSSInstance {
     /// The common implementation for `Self::pipe_stdout` & `Self::pipe_stderr`.
     ///
     /// Do not use directly.
-    fn pipe_any_impl<R>(&mut self, source: R, source_type: &'static str, tx: Sender<String>) -> io::Result<()>
+    fn pipe_any_impl<R>(
+        &mut self,
+        source: R,
+        source_type: &'static str,
+        tx: Sender<String>,
+        backlog: Arc<Mutex<String>>,
+    ) -> io::Result<()>
     where
         R: Read + Send + 'static,
     {
@@ -105,8 +111,12 @@ impl ActiveSSInstance {
             .name(format!("{} piper daemon for instance {}", source_type, self_name))
             .spawn(move || {
                 for line_res in source.lines() {
-                    let line = line_res.unwrap_or_else(|err| format!("Error reading {}: {}", &source_type, err));
-                    if let Err(err) = tx.send(line) {
+                    let line = {
+                        let raw = line_res.unwrap_or_else(|err| format!("Error reading {}: {}", &source_type, err));
+                        format!("[{}] {}\n", source_type, raw)
+                    };
+                    // try to send through channel
+                    if let Err(err) = tx.send(line.clone()) {
                         warn!(
                             "Instance {} wrote to {}, but all receivers have hung up. Piper daemon stopping.",
                             self_name, source_type
@@ -114,14 +124,22 @@ impl ActiveSSInstance {
                         warn!("Last line written was \"{}\".", err.0);
                         break;
                     }
+                    // if successful, also append to backlog
+                    backlog
+                        .lock()
+                        .unwrap_or_else(|err| {
+                            warn!("Lock on backlog sink poisoned, recovering");
+                            err.into_inner()
+                        })
+                        .push_str(&line);
                 }
                 // thread exits when the source is closed
             })?;
         self.daemon_handles.push(handle);
         Ok(())
     }
-    /// Pipe all lines of `sslocal`'s `stdout` to a channel.
-    fn pipe_stdout(&mut self, tx: Sender<String>) -> io::Result<()> {
+    /// Pipe all lines of `sslocal`'s `stdout` to a channel and a backlog.
+    fn pipe_stdout(&mut self, tx: Sender<String>, backlog: Arc<Mutex<String>>) -> io::Result<()> {
         let proc = self.sslocal_process.as_mut().ok_or_else(|| {
             io::Error::new(
                 io::ErrorKind::NotFound,
@@ -134,10 +152,10 @@ impl ActiveSSInstance {
                 "Cannot pipe stdout; ChildStdout stream already consumed",
             )
         })?;
-        self.pipe_any_impl(stdout, "stdout", tx)
+        self.pipe_any_impl(stdout, "stdout", tx, backlog)
     }
-    /// Pipe all lines of `sslocal`'s `stderr` to a channel.
-    fn pipe_stderr(&mut self, tx: Sender<String>) -> io::Result<()> {
+    /// Pipe all lines of `sslocal`'s `stderr` to a channel and a a backlog.
+    fn pipe_stderr(&mut self, tx: Sender<String>, backlog: Arc<Mutex<String>>) -> io::Result<()> {
         let proc = self.sslocal_process.as_mut().ok_or_else(|| {
             io::Error::new(
                 io::ErrorKind::NotFound,
@@ -150,7 +168,7 @@ impl ActiveSSInstance {
                 "Cannot pipe stderr; ChildStderr stream already consumed",
             )
         })?;
-        self.pipe_any_impl(stderr, "stderr", tx)
+        self.pipe_any_impl(stderr, "stderr", tx, backlog)
     }
 
     /// Starts a monitoring thread that waits for the underlying `sslocal`
@@ -212,6 +230,9 @@ pub struct ProfileManager {
     /// Clone me to handle `sslocal`'s `stderr`.
     pub stderr_rx: Receiver<String>,
 
+    /// A string holding the combined backlog history of `stdout` & `stderr`.
+    pub backlog: Arc<Mutex<String>>,
+
     /// The daemon threads that need to be cleanup up when deactivating.
     daemon_handles: Vec<JoinHandle<()>>,
 }
@@ -241,11 +262,12 @@ impl ProfileManager {
         let (stderr_tx, stderr_rx) = crossbeam_channel::unbounded();
         Self {
             on_fail,
-            active_instance: Arc::new(RwLock::new(None)),
+            active_instance: RwLock::new(None).into(),
             stdout_tx,
             stderr_tx,
             stdout_rx,
             stderr_rx,
+            backlog: Mutex::new(String::new()).into(),
             daemon_handles: vec![],
         }
     }
@@ -306,8 +328,8 @@ impl ProfileManager {
         let mut new_instance = ActiveSSInstance::new(new_profile)?;
 
         // pipe `sslocal`'s `stdout` & `stderr`
-        new_instance.pipe_stdout(self.stdout_tx.clone())?;
-        new_instance.pipe_stderr(self.stderr_tx.clone())?;
+        new_instance.pipe_stdout(self.stdout_tx.clone(), Arc::clone(&self.backlog))?;
+        new_instance.pipe_stderr(self.stderr_tx.clone(), Arc::clone(&self.backlog))?;
 
         // monitor for failure
         let exit_alert = new_instance.alert_on_exit()?;
@@ -334,6 +356,7 @@ impl ProfileManager {
             .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "Not active"))?;
         let stdout_tx = self.stdout_tx.clone();
         let stderr_tx = self.stderr_tx.clone();
+        let backlog = Arc::clone(&self.backlog);
 
         // create thread
         let handle = thread::Builder::new()
@@ -416,11 +439,12 @@ impl ProfileManager {
                             profile: ConfigProfile,
                             stdout_tx: Sender<String>,
                             stderr_tx: Sender<String>,
+                            backlog: &Arc<Mutex<String>>,
                             exit_listener: &mut Receiver<ExitStatus>,
                         ) -> io::Result<ActiveSSInstance> {
                             let mut instance = ActiveSSInstance::new(profile)?;
-                            instance.pipe_stdout(stdout_tx)?;
-                            instance.pipe_stderr(stderr_tx)?;
+                            instance.pipe_stdout(stdout_tx, Arc::clone(backlog))?;
+                            instance.pipe_stderr(stderr_tx, Arc::clone(backlog))?;
                             *exit_listener = instance.alert_on_exit()?;
                             Ok(instance)
                         }
@@ -429,6 +453,7 @@ impl ProfileManager {
                             profile.clone(),
                             stdout_tx.clone(),
                             stderr_tx.clone(),
+                            &backlog,
                             &mut exit_listener,
                         ) {
                             Ok(p) => p,

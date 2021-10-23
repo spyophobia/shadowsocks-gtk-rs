@@ -8,6 +8,8 @@ use log::{error, info, warn};
 
 use crate::{io::config_loader::ConfigFolder, profile_manager::ProfileManager};
 
+use super::backlog::BacklogWindow;
+
 #[cfg(target_os = "linux")]
 pub struct TrayItem {
     ai: AppIndicator,
@@ -71,7 +73,14 @@ pub fn build_and_show(
     // BUG: For some reason the title is not this?
     let mut tray = TrayItem::new("Shadowsocks GTK", icon_name, icon_theme_dir);
 
-    // add stop button
+    // add dynamic profiles
+    tray.add_label("Profiles");
+    for profile in menu_tree_from_root_config_folder(Arc::clone(&profile_manager), config_folder) {
+        tray.menu.append(&profile);
+    }
+    tray.add_separator();
+
+    // add other static menu entries
     let pm_arc = Arc::clone(&profile_manager);
     tray.add_menu_item("Stop sslocal", move || {
         let mut pm = pm_arc.write().unwrap_or_else(|err| {
@@ -85,22 +94,27 @@ pub fn build_and_show(
             info!("sslocal is not running; nothing to stop");
         }
     });
-    tray.add_separator();
+    tray.add_menu_item("Show sslocal Output", move || {
+        // TODO: implement using `App`: check if `App` already owns a `BacklogWindow`
+        // if so, simply bring it to focus
 
-    // add dynamic profiles
-    tray.add_label("Profiles");
-    for profile in menu_tree_from_root_config_folder(Arc::clone(&profile_manager), config_folder) {
-        tray.menu.append(&profile);
-    }
-    tray.add_separator();
+        let pm_inner = profile_manager.read().unwrap_or_else(|err| {
+            warn!("Read lock on profile manager poisoned, recovering");
+            err.into_inner()
+        });
+        let backlog = pm_inner.backlog.lock().unwrap_or_else(|err| {
+            warn!("Lock on backlog sink poisoned, recovering");
+            err.into_inner()
+        });
 
-    // add other static menu entries
-    tray.add_menu_item("Show", || {
-        // TODO: implement window
-        error!("Not yet implemented!");
+        info!("Opening backlog window");
+        let mut window = BacklogWindow::with_backlog(&backlog);
+        window.pipe(pm_inner.stdout_rx.clone());
+        window.pipe(pm_inner.stderr_rx.clone());
+        window.show();
     });
     tray.add_menu_item("Quit", || {
-        info!("Quit.");
+        info!("Quit");
         gtk::main_quit();
     });
 

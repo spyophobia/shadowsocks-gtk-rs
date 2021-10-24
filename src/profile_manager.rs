@@ -41,12 +41,7 @@ struct ActiveSSInstance {
 
 impl Display for ActiveSSInstance {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "(PID: {}, Profile: {})",
-            self.sslocal_pid,
-            self.profile.display_name.as_ref().unwrap() // `display_name` is always set
-        )
+        write!(f, "(PID: {}, Profile: {})", self.sslocal_pid, self.profile.display_name)
     }
 }
 
@@ -278,7 +273,7 @@ impl ProfileManager {
         match state.most_recent_profile.as_str() {
             "" => info!("Most recent profile is none; will not attempt to resume"),
             name => {
-                let name_hit = profiles.iter().find(|&&p| p.display_name.as_ref().unwrap() == name);
+                let name_hit = profiles.iter().find(|&&p| p.display_name == name);
                 match name_hit {
                     Some(&p) => {
                         if let Err(err) = pm.switch_to(p.clone()) {
@@ -380,7 +375,7 @@ impl ProfileManager {
                 }
                 OnFailure::Restart { limit } => {
                     // profile stays the same across restarts, therefore outside of loop
-                    let profile_name = profile.display_name.as_ref().unwrap(); // display_name is always set
+                    let profile_name = profile.display_name.clone();
                     let mut exit_listener = listener; // is set to new listener in every iteration
                     let mut restart_counter: NaiveLeakyBucket = limit.into();
                     // restart loop can exit for a variety of reasons; see code
@@ -491,7 +486,7 @@ impl ProfileManager {
 
     /// Export the current state of `Self`.
     pub fn snapshot(&self) -> AppState {
-        let profile_name = self.current_profile().map_or("".into(), |p| p.display_name.unwrap());
+        let profile_name = self.current_profile().map_or("".into(), |p| p.display_name);
         AppState {
             most_recent_profile: profile_name,
             on_fail: self.on_fail,

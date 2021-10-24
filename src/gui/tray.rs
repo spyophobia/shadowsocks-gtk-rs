@@ -150,7 +150,7 @@ fn menu_tree_from_config_folder_recurse(
     match config_folder {
         ConfigFolder::Profile(p) => {
             let profile = p.clone();
-            let name = p.display_name.clone().unwrap(); // `display_name` is always set
+            let name = p.display_name.clone();
             let menu_item = MenuItem::with_label(&name);
             menu_item.set_sensitive(true);
             menu_item.connect_activate(move |_| {

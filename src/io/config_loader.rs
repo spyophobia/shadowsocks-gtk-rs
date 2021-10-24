@@ -19,13 +19,44 @@ const SSLOCAL_DEFAULT_PATH: &str = "sslocal";
 const PROFILE_DEF_FILE_NAME: &str = "profile.yaml";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ConfigProfile {
-    /// Should always be set, so safe to unwrap.
+pub struct ConfigProfileSerde {
     pub display_name: Option<String>,
-    /// Should always be set, so safe to unwrap.
     pub pwd: Option<PathBuf>,
-    /// Should always be set, so safe to unwrap.
-    pub sslocal_path: Option<PathBuf>,
+    pub ss_bin_path: Option<PathBuf>,
+    pub ss_config_path: Option<PathBuf>,
+    pub extra_args: Option<Vec<String>>,
+}
+impl TryInto<ConfigProfile> for ConfigProfileSerde {
+    type Error = String;
+
+    fn try_into(self) -> Result<ConfigProfile, Self::Error> {
+        let Self {
+            display_name,
+            pwd,
+            ss_bin_path,
+            ss_config_path,
+            extra_args,
+        } = self;
+
+        let display_name = display_name.ok_or("display_name not set".to_string())?;
+        let pwd = pwd.ok_or("pwd not set".to_string())?;
+        let ss_bin_path = ss_bin_path.ok_or("ss_bin_path not set".to_string())?;
+
+        Ok(ConfigProfile {
+            display_name,
+            pwd,
+            ss_bin_path,
+            ss_config_path,
+            extra_args,
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ConfigProfile {
+    pub display_name: String,
+    pub pwd: PathBuf,
+    pub ss_bin_path: PathBuf,
     pub ss_config_path: Option<PathBuf>,
     pub extra_args: Option<Vec<String>>,
 }
@@ -40,8 +71,6 @@ impl ConfigProfile {
         O: Into<Stdio>,
         E: Into<Stdio>,
     {
-        let pwd = self.pwd.as_ref().unwrap(); // pwd should have been given a default value if not set in profile
-        let sslocal = self.sslocal_path.as_ref().unwrap(); // sslocal_path should have been given a default value if not set in profile
         let config_args: Vec<OsString> = self
             .ss_config_path
             .as_ref()
@@ -50,8 +79,8 @@ impl ConfigProfile {
         let stdout = stdout.map_or(Stdio::null(), |o| o.into());
         let stderr = stderr.map_or(Stdio::null(), |e| e.into());
 
-        Command::new(sslocal)
-            .current_dir(pwd)
+        Command::new(self.ss_bin_path.clone())
+            .current_dir(self.pwd.clone())
             .args(config_args)
             .args(extra_args)
             .stdin(Stdio::null()) // sslocal does not read from stdin
@@ -147,25 +176,23 @@ impl ConfigFolder {
         profile_yaml_path.push(PROFILE_DEF_FILE_NAME);
         if profile_yaml_path.is_file() {
             let content = read_to_string(profile_yaml_path)?;
-            let mut profile: ConfigProfile = serde_yaml::from_str(&content)?;
+            let mut profile: ConfigProfileSerde = serde_yaml::from_str(&content)?;
             // use directory name as default display name
-            if let None = profile.display_name {
-                profile.display_name = Some(display_name);
-            }
+            profile.display_name.get_or_insert(display_name);
             // set pwd correctly
-            profile.pwd = Some(match profile.pwd {
-                Some(p) => {
-                    let mut pwd = path; // use current profile path as base
+            profile.pwd = Some(profile.pwd.map_or(
+                path.clone(), // use current profile path as default pwd
+                |p| {
+                    let mut pwd = path.clone(); // use current profile path as base
                     pwd.push(p); // this handles both relative and absolute path
                     pwd
-                }
-                None => path, // use current profile path as default pwd
-            });
+                },
+            ));
             // set default binary path
-            if let None = profile.sslocal_path {
-                profile.sslocal_path = Some(SSLOCAL_DEFAULT_PATH.into());
-            }
-            return Ok(Self::Profile(profile));
+            profile.ss_bin_path.get_or_insert(SSLOCAL_DEFAULT_PATH.into());
+            return Ok(Self::Profile(
+                profile.try_into().unwrap(), // required fields are set
+            ));
         }
 
         // otherwise, check if it contains files at all

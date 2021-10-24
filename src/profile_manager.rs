@@ -509,3 +509,49 @@ impl ProfileManager {
         // `sslocal` instance dropped implicitly
     }
 }
+
+#[cfg(test)]
+mod test {
+    use std::{
+        thread::{self, sleep},
+        time::Duration,
+    };
+
+    use log::debug;
+
+    use super::*;
+    use crate::{io::config_loader::ConfigFolder, util::leaky_bucket::NaiveLeakyBucketConfig};
+
+    /// This test will always pass. You need to examine the outputs manually.
+    ///
+    /// `cargo test example_profiles_test_run -- --nocapture`
+    #[test]
+    fn example_profiles_test_run() {
+        simple_logger::init().unwrap();
+
+        // parse example configs
+        let eg_configs = ConfigFolder::from_path_recurse("example-config-profiles").unwrap();
+        let profile_list = eg_configs.get_profiles();
+        debug!("Loaded {} profiles.", profile_list.len());
+
+        // setup ProfileManager
+        let on_fail = OnFailure::Restart {
+            limit: NaiveLeakyBucketConfig::new(3, Duration::from_secs(10)),
+        };
+        let mut mgr = ProfileManager::new(on_fail);
+
+        // pipe output
+        let stdout = mgr.stdout_rx.clone();
+        let stderr = mgr.stderr_rx.clone();
+        thread::spawn(move || stdout.iter().for_each(|s| println!("stdout: {}", s)));
+        thread::spawn(move || stderr.iter().for_each(|s| println!("stderr: {}", s)));
+
+        // run through all example profiles
+        for p in profile_list {
+            println!();
+            mgr.switch_to(p.clone()).unwrap();
+            sleep(Duration::from_millis(2500));
+        }
+        let _ = mgr.try_stop();
+    }
+}

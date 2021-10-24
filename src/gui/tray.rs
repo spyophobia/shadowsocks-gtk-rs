@@ -1,6 +1,9 @@
 //! This module contains code that creates a tray item.
 
-use std::sync::{Arc, RwLock};
+use std::{
+    fmt,
+    sync::{Arc, RwLock},
+};
 
 use gtk::{prelude::*, Menu, MenuItem, SeparatorMenuItem};
 use libappindicator::{AppIndicator, AppIndicatorStatus};
@@ -15,6 +18,15 @@ pub struct TrayItem {
     ai: AppIndicator,
     menu: Menu,
 }
+impl fmt::Debug for TrayItem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("TrayItem")
+            .field("ai", &"*AppIndicator info omitted*")
+            .field("menu", &self.menu)
+            .finish()
+    }
+}
+
 impl TrayItem {
     /// Create a new `TrayItem` without showing it.
     ///

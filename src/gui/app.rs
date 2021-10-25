@@ -83,8 +83,11 @@ impl GTKApp {
         use AppEvent::*;
         for event in self.events_rx.try_iter() {
             match event {
-                BacklogShow => match self.backlog_window {
-                    Some(_) => debug!("Backlog window already showing"),
+                BacklogShow => match self.backlog_window.as_ref() {
+                    Some(w) => {
+                        debug!("Backlog window already showing; bringing to foreground");
+                        w.show();
+                    }
                     None => {
                         let pm_inner = util::rwlock_read(&self.profile_manager);
                         let backlog = util::mutex_lock(&pm_inner.backlog);

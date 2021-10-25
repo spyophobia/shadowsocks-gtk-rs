@@ -38,6 +38,8 @@ impl Default for BacklogWindow {
         let scroll_box = ScrolledWindow::builder()
             .child(&text_view)
             .hscrollbar_policy(PolicyType::Never)
+            .margin(6)
+            .margin_top(0)
             .overlay_scrolling(true)
             .vscrollbar_policy(PolicyType::Always)
             .build();
@@ -64,7 +66,7 @@ impl Default for BacklogWindow {
         let window = ApplicationWindow::builder()
             .child(&grid)
             .default_height(600)
-            .default_width(400)
+            .default_width(600)
             .title("Log Viewer")
             .build();
 
@@ -126,7 +128,8 @@ impl BacklogWindow {
 
     /// Simple alias function to show the `BacklogWindow`.
     pub fn show(&self) {
-        self.window.show_all();
+        self.window.show_all(); // render
+        self.window.present(); // bring to foreground
     }
 
     /// Pipe `sslocal` output from a channel to the `TextView`.

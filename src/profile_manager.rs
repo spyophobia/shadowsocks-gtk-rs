@@ -272,11 +272,10 @@ impl ProfileManager {
             name => {
                 let name_hit = profiles.iter().find(|&&p| p.display_name == name);
                 match name_hit {
-                    Some(&p) => {
-                        if let Err(err) = pm.switch_to(p.clone()) {
-                            error!("Cannot resume - switch to profile \"{}\" failed: {}", name, err);
-                        }
-                    }
+                    Some(&p) => match pm.switch_to(p.clone()) {
+                        Ok(_) => info!("Successfully resumed with profile \"{}\"", name),
+                        Err(err) => error!("Cannot resume - switch to profile \"{}\" failed: {}", name, err),
+                    },
                     None => warn!("Cannot resume - profile \"{}\" not found", name),
                 }
             }

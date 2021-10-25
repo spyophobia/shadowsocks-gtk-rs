@@ -11,7 +11,7 @@ use glib::SourceId;
 use gtk::{
     prelude::*, ApplicationWindow, CheckButton, Frame, Grid, PolicyType, ScrolledWindow, TextBuffer, TextView, WrapMode,
 };
-use log::warn;
+use log::{error, trace};
 
 use crate::util;
 
@@ -96,6 +96,7 @@ impl Default for BacklogWindow {
 }
 impl Drop for BacklogWindow {
     fn drop(&mut self) {
+        trace!("BacklogWindow getting dropped.");
         // stop all scheduled functions
         for id in util::mutex_lock(&self.scheduled_fn_ids).drain(..) {
             glib::source::source_remove(id);
@@ -115,7 +116,7 @@ impl BacklogWindow {
         // send event on window destroy
         window.window.connect_destroy(move |_| {
             if let Err(_) = events_tx.send(AppEvent::BacklogHide) {
-                warn!("Trying to send BacklogHide event, but all receivers have hung up.");
+                error!("Trying to send BacklogHide event, but all receivers have hung up.");
             }
         });
 

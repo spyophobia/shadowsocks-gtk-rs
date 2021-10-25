@@ -5,7 +5,7 @@ use std::fmt;
 use crossbeam_channel::Sender;
 use gtk::{prelude::*, Menu, MenuItem, SeparatorMenuItem};
 use libappindicator::{AppIndicator, AppIndicatorStatus};
-use log::warn;
+use log::error;
 
 use super::event::AppEvent;
 use crate::io::config_loader::ConfigFolder;
@@ -93,19 +93,19 @@ pub fn build_and_show(
     let stop_tx = events_tx.clone();
     tray.add_menu_item("Stop sslocal", move || {
         if let Err(_) = stop_tx.send(AppEvent::Stop) {
-            warn!("Trying to send Stop event, but all receivers have hung up.");
+            error!("Trying to send Stop event, but all receivers have hung up.");
         }
     });
     let backlog_tx = events_tx.clone();
     tray.add_menu_item("Show sslocal Output", move || {
         if let Err(_) = backlog_tx.send(AppEvent::BacklogShow) {
-            warn!("Trying to send BacklogShow event, but all receivers have hung up.");
+            error!("Trying to send BacklogShow event, but all receivers have hung up.");
         }
     });
     let quit_tx = events_tx.clone();
     tray.add_menu_item("Quit", move || {
         if let Err(_) = quit_tx.send(AppEvent::Quit) {
-            warn!("Trying to send Quit event, but all receivers have hung up.");
+            error!("Trying to send Quit event, but all receivers have hung up.");
         }
     });
 
@@ -139,7 +139,7 @@ fn menu_tree_from_config_folder_recurse(config_folder: &ConfigFolder, events_tx:
             menu_item.set_sensitive(true);
             menu_item.connect_activate(move |_| {
                 if let Err(_) = events_tx.send(AppEvent::SwitchProfile(profile.clone())) {
-                    warn!("Trying to send SwitchProfile event, but all receivers have hung up.");
+                    error!("Trying to send SwitchProfile event, but all receivers have hung up.");
                 }
             });
             menu_item

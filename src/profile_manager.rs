@@ -10,7 +10,7 @@ use std::{
 };
 
 use crossbeam_channel::{unbounded as unbounded_channel, Receiver, Sender};
-use log::{debug, error, info, warn};
+use log::{debug, error, info, trace, warn};
 use nix::{
     sys::signal::{self, Signal},
     unistd::Pid,
@@ -55,7 +55,7 @@ impl Drop for ActiveSSInstance {
     fn drop(&mut self) {
         let self_name = self.to_string();
 
-        debug!("Instance {} is getting dropped", self_name);
+        trace!("Instance {} is getting dropped", self_name);
 
         // send stop signal to `sslocal` process
         // could return Err if `sslocal` already exited
@@ -234,7 +234,7 @@ impl Drop for ProfileManager {
     ///
     /// Also cleans up all daemon threads.
     fn drop(&mut self) {
-        debug!("ProfileManager is getting dropped");
+        trace!("ProfileManager is getting dropped");
 
         // deactivate `sslocal` instance
         let _ = self.try_stop();
@@ -357,7 +357,7 @@ impl ProfileManager {
                         let instance_name = match &*util::rwlock_read(&instance) {
                             Some(inst) => inst.to_string(),
                             None => {
-                                info!("ProfileManager has been set to inactive; auto-restart stopped");
+                                debug!("ProfileManager has been set to inactive; auto-restart stopped");
                                 break;
                             }
                         };
@@ -368,7 +368,7 @@ impl ProfileManager {
                                 // most likely because `ActiveInstance` gets dropped
                                 // causing `sslocal` to exit gracefully,
                                 // or if the user calls `sslocal --version` or something
-                                info!(
+                                debug!(
                                     "Instance {} has exited successfully; auto-restart stopped",
                                     instance_name
                                 );

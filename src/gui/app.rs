@@ -10,7 +10,7 @@ use std::{
 use clap::ArgMatches;
 use crossbeam_channel::{unbounded as unbounded_channel, Receiver, Sender};
 use gtk::prelude::*;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 
 use crate::{
     gui::tray,
@@ -84,12 +84,12 @@ impl GTKApp {
         for event in self.events_rx.try_iter() {
             match event {
                 BacklogShow => match self.backlog_window {
-                    Some(_) => info!("Backlog window already showing"),
+                    Some(_) => debug!("Backlog window already showing"),
                     None => {
                         let pm_inner = util::rwlock_read(&self.profile_manager);
                         let backlog = util::mutex_lock(&pm_inner.backlog);
 
-                        info!("Opening backlog window");
+                        debug!("Opening backlog window");
                         let mut window = BacklogWindow::with_backlog(&backlog, self.events_tx.clone());
                         window.pipe(pm_inner.stdout_rx.clone());
                         window.pipe(pm_inner.stderr_rx.clone());
@@ -99,7 +99,7 @@ impl GTKApp {
                     }
                 },
                 BacklogHide => {
-                    info!("Closing backlog window");
+                    debug!("Closing backlog window");
                     drop(self.backlog_window.take());
                 }
                 SwitchProfile(p) => {

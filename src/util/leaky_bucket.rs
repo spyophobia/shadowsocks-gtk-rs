@@ -14,6 +14,7 @@ pub struct LeakyBucketOverflowed {
     within: Duration,
     history: Vec<Instant>,
 }
+
 impl Display for LeakyBucketOverflowed {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -23,6 +24,7 @@ impl Display for LeakyBucketOverflowed {
         )
     }
 }
+
 impl From<&NaiveLeakyBucket> for LeakyBucketOverflowed {
     fn from(lb: &NaiveLeakyBucket) -> Self {
         let NaiveLeakyBucket { times, within, history } = lb.clone();

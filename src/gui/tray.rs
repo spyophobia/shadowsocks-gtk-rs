@@ -7,7 +7,7 @@ use gtk::{prelude::*, Menu, MenuItem, SeparatorMenuItem};
 use libappindicator::{AppIndicator, AppIndicatorStatus};
 use log::error;
 
-use super::event::AppEvent;
+use super::AppEvent;
 use crate::io::config_loader::ConfigFolder;
 
 #[cfg(target_os = "linux")]
@@ -15,6 +15,7 @@ pub struct TrayItem {
     ai: AppIndicator,
     menu: Menu,
 }
+
 impl fmt::Debug for TrayItem {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("TrayItem")

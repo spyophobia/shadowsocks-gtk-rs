@@ -26,6 +26,7 @@ pub struct ConfigProfileSerde {
     pub ss_config_path: Option<PathBuf>,
     pub extra_args: Option<Vec<String>>,
 }
+
 impl TryInto<ConfigProfile> for ConfigProfileSerde {
     type Error = String;
 
@@ -110,6 +111,7 @@ pub enum ConfigLoadError {
     /// The filesystem encountered an IOError.
     IOError(io::Error),
 }
+
 impl Display for ConfigLoadError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use ConfigLoadError::*;
@@ -123,6 +125,7 @@ impl Display for ConfigLoadError {
         }
     }
 }
+
 impl From<serde_yaml::Error> for ConfigLoadError {
     fn from(err: serde_yaml::Error) -> Self {
         Self::ProfileParseError(err)

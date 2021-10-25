@@ -19,7 +19,7 @@ use crate::{
     util,
 };
 
-use super::{backlog::BacklogWindow, event::AppEvent, tray::TrayItem};
+use super::{backlog::BacklogWindow, tray::TrayItem, AppEvent};
 
 #[derive(Debug)]
 struct GTKApp {

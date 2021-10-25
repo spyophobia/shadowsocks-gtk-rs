@@ -15,7 +15,7 @@ use log::{error, trace};
 
 use crate::util;
 
-use super::event::AppEvent;
+use super::AppEvent;
 
 #[derive(Debug)]
 pub struct BacklogWindow {
@@ -94,6 +94,7 @@ impl Default for BacklogWindow {
         ret
     }
 }
+
 impl Drop for BacklogWindow {
     fn drop(&mut self) {
         trace!("BacklogWindow getting dropped.");

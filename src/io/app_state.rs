@@ -1,3 +1,6 @@
+//! This module defines the application state, read from and saved to disk
+//! when the application in starting and stopping respectively.
+
 use std::{fmt::Display, fs, io, path::Path, time::Duration};
 
 use serde::{Deserialize, Serialize};
@@ -33,6 +36,7 @@ impl From<io::Error> for AppStateError {
     }
 }
 
+/// Describes the state of the application.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppState {
     /// `""` indicates none.

@@ -1,17 +1,14 @@
 //! This module contains code that creates a tray item.
 
-use std::{
-    fmt,
-    sync::{Arc, RwLock},
-};
+use std::fmt;
 
+use crossbeam_channel::Sender;
 use gtk::{prelude::*, Menu, MenuItem, SeparatorMenuItem};
 use libappindicator::{AppIndicator, AppIndicatorStatus};
-use log::{error, info};
+use log::warn;
 
-use crate::{io::config_loader::ConfigFolder, profile_manager::ProfileManager, util};
-
-use super::backlog::BacklogWindow;
+use super::event::AppEvent;
+use crate::io::config_loader::ConfigFolder;
 
 #[cfg(target_os = "linux")]
 pub struct TrayItem {
@@ -79,7 +76,7 @@ pub fn build_and_show(
     config_folder: &ConfigFolder,
     icon_name: &str,
     icon_theme_dir: Option<&str>,
-    profile_manager: Arc<RwLock<ProfileManager>>,
+    events_tx: Sender<AppEvent>,
 ) -> TrayItem {
     // create tray with icon
     // BUG: For some reason the title is not this?
@@ -87,38 +84,29 @@ pub fn build_and_show(
 
     // add dynamic profiles
     tray.add_label("Profiles");
-    for profile in menu_tree_from_root_config_folder(Arc::clone(&profile_manager), config_folder) {
+    for profile in menu_tree_from_root_config_folder(config_folder, events_tx.clone()) {
         tray.menu.append(&profile);
     }
     tray.add_separator();
 
     // add other static menu entries
-    let pm_arc = Arc::clone(&profile_manager);
+    let stop_tx = events_tx.clone();
     tray.add_menu_item("Stop sslocal", move || {
-        let mut pm = util::rwlock_write(&pm_arc);
-        if pm.is_active() {
-            info!("Sending stop signal to sslocal");
-            let _ = pm.try_stop();
-        } else {
-            info!("sslocal is not running; nothing to stop");
+        if let Err(_) = stop_tx.send(AppEvent::Stop) {
+            warn!("Trying to send Stop event, but all receivers have hung up.");
         }
     });
+    let backlog_tx = events_tx.clone();
     tray.add_menu_item("Show sslocal Output", move || {
-        // TODO: implement using `App`: check if `App` already owns a `BacklogWindow`
-        // if so, simply bring it to focus
-
-        let pm_inner = util::rwlock_read(&profile_manager);
-        let backlog = util::mutex_lock(&pm_inner.backlog);
-
-        info!("Opening backlog window");
-        let mut window = BacklogWindow::with_backlog(&backlog);
-        window.pipe(pm_inner.stdout_rx.clone());
-        window.pipe(pm_inner.stderr_rx.clone());
-        window.show();
+        if let Err(_) = backlog_tx.send(AppEvent::BacklogShow) {
+            warn!("Trying to send BacklogShow event, but all receivers have hung up.");
+        }
     });
-    tray.add_menu_item("Quit", || {
-        info!("Quit");
-        gtk::main_quit();
+    let quit_tx = events_tx.clone();
+    tray.add_menu_item("Quit", move || {
+        if let Err(_) = quit_tx.send(AppEvent::Quit) {
+            warn!("Trying to send Quit event, but all receivers have hung up.");
+        }
     });
 
     // Wrap up
@@ -130,37 +118,28 @@ pub fn build_and_show(
 ///
 /// This is a special case because we want to remove the topmost layer of nesting,
 /// and doing it this way is by far the easiest.
-fn menu_tree_from_root_config_folder(
-    profile_manager: Arc<RwLock<ProfileManager>>,
-    config_folder: &ConfigFolder,
-) -> Vec<MenuItem> {
+fn menu_tree_from_root_config_folder(config_folder: &ConfigFolder, events_tx: Sender<AppEvent>) -> Vec<MenuItem> {
     match config_folder {
         ConfigFolder::Group(g) => g
             .content
             .iter()
-            .map(|cf| menu_tree_from_config_folder_recurse(Arc::clone(&profile_manager), cf))
+            .map(|cf| menu_tree_from_config_folder_recurse(cf, events_tx.clone()))
             .collect(),
-        profile => vec![menu_tree_from_config_folder_recurse(profile_manager, profile)],
+        profile => vec![menu_tree_from_config_folder_recurse(profile, events_tx)],
     }
 }
 
 /// Recursively constructs a nested menu structure from a `ConfigFolder`,
 /// attaching the corresponding profile-switch action to each leaf `ConfigProfile`.
-fn menu_tree_from_config_folder_recurse(
-    profile_manager: Arc<RwLock<ProfileManager>>,
-    config_folder: &ConfigFolder,
-) -> MenuItem {
+fn menu_tree_from_config_folder_recurse(config_folder: &ConfigFolder, events_tx: Sender<AppEvent>) -> MenuItem {
     match config_folder {
         ConfigFolder::Profile(p) => {
             let profile = p.clone();
-            let name = p.display_name.clone();
-            let menu_item = MenuItem::with_label(&name);
+            let menu_item = MenuItem::with_label(&p.display_name);
             menu_item.set_sensitive(true);
             menu_item.connect_activate(move |_| {
-                info!("Switching profile to \"{}\"", name);
-                let switch_res = util::rwlock_write(&profile_manager).switch_to(profile.clone());
-                if let Err(err) = switch_res {
-                    error!("Cannot switch to profile \"{}\": {}", name, err);
+                if let Err(_) = events_tx.send(AppEvent::SwitchProfile(profile.clone())) {
+                    warn!("Trying to send SwitchProfile event, but all receivers have hung up.");
                 }
             });
             menu_item
@@ -168,7 +147,7 @@ fn menu_tree_from_config_folder_recurse(
         ConfigFolder::Group(g) => {
             let submenu = Menu::new();
             for cf in g.content.iter() {
-                let submenu_item = menu_tree_from_config_folder_recurse(Arc::clone(&profile_manager), cf);
+                let submenu_item = menu_tree_from_config_folder_recurse(cf, events_tx.clone());
                 submenu.append(&submenu_item);
             }
             submenu.show_all();

@@ -6,13 +6,16 @@ use std::{
     time::Duration,
 };
 
-use crossbeam_channel::Receiver;
+use crossbeam_channel::{Receiver, Sender};
 use glib::SourceId;
 use gtk::{
     prelude::*, ApplicationWindow, CheckButton, Frame, Grid, PolicyType, ScrolledWindow, TextBuffer, TextView, WrapMode,
 };
+use log::warn;
 
 use crate::util;
+
+use super::event::AppEvent;
 
 #[derive(Debug)]
 pub struct BacklogWindow {
@@ -88,25 +91,34 @@ impl Default for BacklogWindow {
         );
         util::mutex_lock(&ret.scheduled_fn_ids).push(id);
 
-        // stop scheduled functions on window destroy
-        // TODO: Maybe make `App` own `BacklogWindow` and implement with `Drop`?
-        let ids = Arc::clone(&ret.scheduled_fn_ids);
-        ret.window.connect_destroy(move |_| {
-            for id in util::mutex_lock(&ids).drain(..) {
-                glib::source::source_remove(id);
-            }
-        });
-
         ret
+    }
+}
+impl Drop for BacklogWindow {
+    fn drop(&mut self) {
+        // stop all scheduled functions
+        for id in util::mutex_lock(&self.scheduled_fn_ids).drain(..) {
+            glib::source::source_remove(id);
+        }
     }
 }
 
 impl BacklogWindow {
     /// Create a new `BacklogWindow` and fill with existing backlog.
-    pub fn with_backlog(backlog: &str) -> Self {
+    pub fn with_backlog(backlog: &str, events_tx: Sender<AppEvent>) -> Self {
         let window = Self::default();
+
+        // insert backlog
         window.buffer.place_cursor(&window.buffer.end_iter());
         window.buffer.insert_at_cursor(backlog);
+
+        // send event on window destroy
+        window.window.connect_destroy(move |_| {
+            if let Err(_) = events_tx.send(AppEvent::BacklogHide) {
+                warn!("Trying to send BacklogHide event, but all receivers have hung up.");
+            }
+        });
+
         window
     }
 
@@ -134,12 +146,15 @@ impl BacklogWindow {
 
 #[cfg(test)]
 mod test {
+    use crossbeam_channel::unbounded as unbounded_channel;
+
     use super::BacklogWindow;
 
     #[test]
     fn show_default_window_with_backlog() {
         gtk::init().unwrap();
-        BacklogWindow::with_backlog("Mock backlog").show();
+        let (events_tx, _) = unbounded_channel();
+        BacklogWindow::with_backlog("Mock backlog", events_tx).show();
         gtk::main();
     }
 }

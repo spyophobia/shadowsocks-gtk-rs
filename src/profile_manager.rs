@@ -250,8 +250,8 @@ impl Drop for ProfileManager {
 
 impl ProfileManager {
     pub fn new(on_fail: OnFailure) -> Self {
-        let (stdout_tx, stdout_rx) = crossbeam_channel::unbounded();
-        let (stderr_tx, stderr_rx) = crossbeam_channel::unbounded();
+        let (stdout_tx, stdout_rx) = unbounded_channel();
+        let (stderr_tx, stderr_rx) = unbounded_channel();
         Self {
             on_fail,
             active_instance: RwLock::new(None).into(),

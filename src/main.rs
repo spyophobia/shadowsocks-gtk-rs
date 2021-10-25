@@ -1,7 +1,7 @@
 use clap::ArgMatches;
 use log::debug;
 
-use crate::{gui::app::GTKApp, io::config_loader::ConfigFolder};
+use crate::{gui::app, io::config_loader::ConfigFolder};
 
 mod clap_def;
 mod gui;
@@ -27,8 +27,7 @@ fn main() -> Result<(), String> {
     );
 
     // start app
-    let app = GTKApp::new(&clap_matches, &config_folder);
-    app.run_and_cleanup();
+    app::run(&clap_matches, &config_folder);
 
     Ok(())
 }

@@ -7,9 +7,9 @@ use std::{
 
 use gtk::{prelude::*, Menu, MenuItem, SeparatorMenuItem};
 use libappindicator::{AppIndicator, AppIndicatorStatus};
-use log::{error, info, warn};
+use log::{error, info};
 
-use crate::{io::config_loader::ConfigFolder, profile_manager::ProfileManager};
+use crate::{io::config_loader::ConfigFolder, profile_manager::ProfileManager, util};
 
 use super::backlog::BacklogWindow;
 
@@ -95,10 +95,7 @@ pub fn build_and_show(
     // add other static menu entries
     let pm_arc = Arc::clone(&profile_manager);
     tray.add_menu_item("Stop sslocal", move || {
-        let mut pm = pm_arc.write().unwrap_or_else(|err| {
-            warn!("Write lock on profile manager poisoned, recovering");
-            err.into_inner()
-        });
+        let mut pm = util::rwlock_write(&pm_arc);
         if pm.is_active() {
             info!("Sending stop signal to sslocal");
             let _ = pm.try_stop();
@@ -110,14 +107,8 @@ pub fn build_and_show(
         // TODO: implement using `App`: check if `App` already owns a `BacklogWindow`
         // if so, simply bring it to focus
 
-        let pm_inner = profile_manager.read().unwrap_or_else(|err| {
-            warn!("Read lock on profile manager poisoned, recovering");
-            err.into_inner()
-        });
-        let backlog = pm_inner.backlog.lock().unwrap_or_else(|err| {
-            warn!("Lock on backlog sink poisoned, recovering");
-            err.into_inner()
-        });
+        let pm_inner = util::rwlock_read(&profile_manager);
+        let backlog = util::mutex_lock(&pm_inner.backlog);
 
         info!("Opening backlog window");
         let mut window = BacklogWindow::with_backlog(&backlog);
@@ -167,13 +158,7 @@ fn menu_tree_from_config_folder_recurse(
             menu_item.set_sensitive(true);
             menu_item.connect_activate(move |_| {
                 info!("Switching profile to \"{}\"", name);
-                let switch_res = profile_manager
-                    .write()
-                    .unwrap_or_else(|err| {
-                        warn!("Write lock on profile manager poisoned, recovering");
-                        err.into_inner()
-                    })
-                    .switch_to(profile.clone()); // not sure why I have to clone twice but this works
+                let switch_res = util::rwlock_write(&profile_manager).switch_to(profile.clone());
                 if let Err(err) = switch_res {
                     error!("Cannot switch to profile \"{}\": {}", name, err);
                 }

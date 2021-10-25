@@ -13,6 +13,7 @@ use crate::{
     gui::tray,
     io::{app_state::AppState, config_loader::ConfigFolder},
     profile_manager::ProfileManager,
+    util,
 };
 
 use super::{backlog::BacklogWindow, tray::TrayItem};
@@ -71,10 +72,7 @@ impl GTKApp {
 
         // cleanup
         let pm_arc = Arc::clone(&self.profile_manager);
-        let mut pm = pm_arc.write().unwrap_or_else(|err| {
-            warn!("Write lock on profile manager poisoned, recovering");
-            err.into_inner()
-        });
+        let mut pm = util::rwlock_write(&pm_arc);
         // save app state
         if let Err(err) = pm.snapshot().write_to_file(&self.app_state_path) {
             error!("Failed to save app state: {}", err);

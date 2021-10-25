@@ -11,7 +11,8 @@ use glib::SourceId;
 use gtk::{
     prelude::*, ApplicationWindow, CheckButton, Frame, Grid, PolicyType, ScrolledWindow, TextBuffer, TextView, WrapMode,
 };
-use log::warn;
+
+use crate::util;
 
 #[derive(Debug)]
 pub struct BacklogWindow {
@@ -85,23 +86,13 @@ impl Default for BacklogWindow {
                 Continue(true)
             },
         );
-        ret.scheduled_fn_ids
-            .lock()
-            .unwrap_or_else(|err| {
-                warn!("Lock on scheduled function ids poisoned, recovering");
-                err.into_inner()
-            })
-            .push(id);
+        util::mutex_lock(&ret.scheduled_fn_ids).push(id);
 
         // stop scheduled functions on window destroy
         // TODO: Maybe make `App` own `BacklogWindow` and implement with `Drop`?
         let ids = Arc::clone(&ret.scheduled_fn_ids);
         ret.window.connect_destroy(move |_| {
-            let mut lock = ids.lock().unwrap_or_else(|err| {
-                warn!("Lock on scheduled function ids poisoned, recovering");
-                err.into_inner()
-            });
-            for id in lock.drain(..) {
+            for id in util::mutex_lock(&ids).drain(..) {
                 glib::source::source_remove(id);
             }
         });
@@ -137,13 +128,7 @@ impl BacklogWindow {
                 Continue(true)
             },
         );
-        self.scheduled_fn_ids
-            .lock()
-            .unwrap_or_else(|err| {
-                warn!("Lock on scheduled function ids poisoned, recovering");
-                err.into_inner()
-            })
-            .push(id);
+        util::mutex_lock(&self.scheduled_fn_ids).push(id);
     }
 }
 

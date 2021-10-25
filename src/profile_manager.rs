@@ -19,7 +19,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     io::{app_state::AppState, config_loader::ConfigProfile},
-    util::leaky_bucket::{NaiveLeakyBucket, NaiveLeakyBucketConfig},
+    util::{
+        self,
+        leaky_bucket::{NaiveLeakyBucket, NaiveLeakyBucketConfig},
+    },
 };
 
 /// Represents a currently running `sslocal` instance, storing the relevant information
@@ -120,13 +123,7 @@ impl ActiveSSInstance {
                         break;
                     }
                     // if successful, also append to backlog
-                    backlog
-                        .lock()
-                        .unwrap_or_else(|err| {
-                            warn!("Lock on backlog sink poisoned, recovering");
-                            err.into_inner()
-                        })
-                        .push_str(&line);
+                    util::mutex_lock(&backlog).push_str(&line);
                 }
                 // thread exits when the source is closed
             })?;
@@ -289,23 +286,12 @@ impl ProfileManager {
 
     /// Indicate whether a `sslocal` instance is currently running.
     pub fn is_active(&self) -> bool {
-        self.active_instance
-            .read()
-            .unwrap_or_else(|err| {
-                warn!("Read lock on active instance poisoned, recovering");
-                err.into_inner()
-            })
-            .is_some()
+        util::rwlock_read(&self.active_instance).is_some()
     }
 
     /// Get the profile of the currently active instance.
     pub fn current_profile(&self) -> Option<ConfigProfile> {
-        self.active_instance
-            .read()
-            .unwrap_or_else(|err| {
-                warn!("Read lock on active instance poisoned, recovering");
-                err.into_inner()
-            })
+        util::rwlock_read(&self.active_instance)
             .as_ref()
             .map(|instance| instance.profile.clone())
     }
@@ -330,10 +316,7 @@ impl ProfileManager {
         let exit_alert = new_instance.alert_on_exit()?;
 
         // set
-        *self.active_instance.write().unwrap_or_else(|err| {
-            warn!("Write lock on active instance poisoned, recovering");
-            err.into_inner()
-        }) = Some(new_instance);
+        *util::rwlock_write(&self.active_instance) = Some(new_instance);
 
         // monitor
         self.set_on_fail(exit_alert, self.on_fail)?;
@@ -363,15 +346,7 @@ impl ProfileManager {
                     }
 
                     // leave ProfileManager inactive
-                    drop(
-                        instance
-                            .write()
-                            .unwrap_or_else(|err| {
-                                warn!("Write lock on active instance poisoned, recovering");
-                                err.into_inner()
-                            })
-                            .take(),
-                    );
+                    drop(util::rwlock_write(&instance).take());
                 }
                 OnFailure::Restart { limit } => {
                     // profile stays the same across restarts, therefore outside of loop
@@ -380,11 +355,8 @@ impl ProfileManager {
                     let mut restart_counter: NaiveLeakyBucket = limit.into();
                     // restart loop can exit for a variety of reasons; see code
                     loop {
-                        let instance_name = match &*instance.read().unwrap_or_else(|err| {
-                            warn!("Read lock on active instance poisoned, recovering");
-                            err.into_inner()
-                        }) {
-                            Some(instance) => instance.to_string(),
+                        let instance_name = match &*util::rwlock_read(&instance) {
+                            Some(inst) => inst.to_string(),
                             None => {
                                 info!("ProfileManager has been set to inactive; auto-restart stopped");
                                 break;
@@ -462,21 +434,10 @@ impl ProfileManager {
                         };
 
                         // Set new active instance
-                        *instance.write().unwrap_or_else(|err| {
-                            warn!("Write lock on active instance poisoned, recovering");
-                            err.into_inner()
-                        }) = Some(new_instance);
+                        *util::rwlock_write(&instance) = Some(new_instance);
                     }
                     // loop exit means we should leave ProfileManager inactive
-                    drop(
-                        instance
-                            .write()
-                            .unwrap_or_else(|err| {
-                                warn!("Write lock on active instance poisoned, recovering");
-                                err.into_inner()
-                            })
-                            .take(),
-                    );
+                    drop(util::rwlock_write(&instance).take());
                 }
             })?;
         self.daemon_handles.push(handle);
@@ -497,14 +458,7 @@ impl ProfileManager {
     ///
     /// Returns `Err(())` if already inactive.
     pub fn try_stop(&mut self) -> Result<(), ()> {
-        let instance = self
-            .active_instance
-            .write()
-            .unwrap_or_else(|err| {
-                warn!("Write lock on active instance poisoned, recovering");
-                err.into_inner()
-            })
-            .take();
+        let instance = util::rwlock_write(&self.active_instance).take();
         instance.map(|_| ()).ok_or(())
         // `sslocal` instance dropped implicitly
     }

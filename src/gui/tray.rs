@@ -3,7 +3,7 @@
 use std::fmt;
 
 use crossbeam_channel::Sender;
-use gtk::{prelude::*, Menu, MenuItem, SeparatorMenuItem};
+use gtk::{prelude::*, Menu, MenuItem, RadioMenuItem, SeparatorMenuItem};
 use libappindicator::{AppIndicator, AppIndicatorStatus};
 use log::error;
 
@@ -70,6 +70,12 @@ impl TrayItem {
     }
 }
 
+#[derive(Debug, Clone)]
+enum ConfigMenuItem {
+    Profile(RadioMenuItem),
+    Group(MenuItem),
+}
+
 /// Build the tray item and show it, returning the `TrayItem`.
 ///
 /// Should only be called once.
@@ -83,20 +89,27 @@ pub fn build_and_show(
     // BUG: For some reason the title is not this?
     let mut tray = TrayItem::new("Shadowsocks GTK", icon_name, icon_theme_dir);
 
-    // add dynamic profiles
+    // add dynamic profiles and stop button
     tray.add_label("Profiles");
-    for profile in menu_tree_from_root_config_folder(config_folder, events_tx.clone()) {
-        tray.menu.append(&profile);
+    let manual_stop_item = RadioMenuItem::with_label("Stop sslocal");
+    for item in menu_tree_from_root_config_folder(config_folder, &manual_stop_item, events_tx.clone()) {
+        match item {
+            ConfigMenuItem::Profile(item) => tray.menu.append(&item),
+            ConfigMenuItem::Group(item) => tray.menu.append(&item),
+        }
     }
     tray.add_separator();
-
-    // add other static menu entries
     let manual_stop_tx = events_tx.clone();
-    tray.add_menu_item("Stop sslocal", move || {
-        if let Err(_) = manual_stop_tx.send(AppEvent::ManualStop) {
-            error!("Trying to send ManualStop event, but all receivers have hung up.");
+    manual_stop_item.connect_toggled(move |item| {
+        if item.is_active() {
+            if let Err(_) = manual_stop_tx.send(AppEvent::ManualStop) {
+                error!("Trying to send ManualStop event, but all receivers have hung up.");
+            }
         }
     });
+    tray.menu.append(&manual_stop_item);
+
+    // add other static menu entries
     let backlog_tx = events_tx.clone();
     tray.add_menu_item("Show sslocal Output", move || {
         if let Err(_) = backlog_tx.send(AppEvent::BacklogShow) {
@@ -119,44 +132,61 @@ pub fn build_and_show(
 ///
 /// This is a special case because we want to remove the topmost layer of nesting,
 /// and doing it this way is by far the easiest.
-fn menu_tree_from_root_config_folder(config_folder: &ConfigFolder, events_tx: Sender<AppEvent>) -> Vec<MenuItem> {
+fn menu_tree_from_root_config_folder<G>(
+    config_folder: &ConfigFolder,
+    group: &G,
+    events_tx: Sender<AppEvent>,
+) -> Vec<ConfigMenuItem>
+where
+    G: IsA<RadioMenuItem>,
+{
     match config_folder {
         ConfigFolder::Group(g) => g
             .content
             .iter()
-            .map(|cf| menu_tree_from_config_folder_recurse(cf, events_tx.clone()))
+            .map(|cf| menu_tree_from_config_folder_recurse(cf, group, events_tx.clone()))
             .collect(),
-        profile => vec![menu_tree_from_config_folder_recurse(profile, events_tx)],
+        profile => vec![menu_tree_from_config_folder_recurse(profile, group, events_tx)],
     }
 }
 
 /// Recursively constructs a nested menu structure from a `ConfigFolder`,
 /// attaching the corresponding profile-switch action to each leaf `ConfigProfile`.
-fn menu_tree_from_config_folder_recurse(config_folder: &ConfigFolder, events_tx: Sender<AppEvent>) -> MenuItem {
+fn menu_tree_from_config_folder_recurse<G>(
+    config_folder: &ConfigFolder,
+    group: &G,
+    events_tx: Sender<AppEvent>,
+) -> ConfigMenuItem
+where
+    G: IsA<RadioMenuItem>,
+{
     match config_folder {
         ConfigFolder::Profile(p) => {
             let profile = p.clone();
-            let menu_item = MenuItem::with_label(&p.display_name);
+            let menu_item = RadioMenuItem::with_label_from_widget(group, Some(&p.display_name));
             menu_item.set_sensitive(true);
-            menu_item.connect_activate(move |_| {
-                if let Err(_) = events_tx.send(AppEvent::SwitchProfile(profile.clone())) {
-                    error!("Trying to send SwitchProfile event, but all receivers have hung up.");
+            menu_item.connect_toggled(move |item| {
+                if item.is_active() {
+                    if let Err(_) = events_tx.send(AppEvent::SwitchProfile(profile.clone())) {
+                        error!("Trying to send SwitchProfile event, but all receivers have hung up.");
+                    }
                 }
             });
-            menu_item
+            ConfigMenuItem::Profile(menu_item)
         }
         ConfigFolder::Group(g) => {
             let submenu = Menu::new();
             for cf in g.content.iter() {
-                let submenu_item = menu_tree_from_config_folder_recurse(cf, events_tx.clone());
-                submenu.append(&submenu_item);
+                match menu_tree_from_config_folder_recurse(cf, group, events_tx.clone()) {
+                    ConfigMenuItem::Profile(item) => submenu.append(&item),
+                    ConfigMenuItem::Group(item) => submenu.append(&item),
+                }
             }
-            submenu.show_all();
 
-            let parent_menu_item = MenuItem::with_label(&g.display_name);
-            parent_menu_item.set_sensitive(true);
-            parent_menu_item.set_submenu(Some(&submenu));
-            parent_menu_item
+            let parent = MenuItem::with_label(&g.display_name);
+            parent.set_sensitive(true);
+            parent.set_submenu(Some(&submenu));
+            ConfigMenuItem::Group(parent)
         }
     }
 }

@@ -16,6 +16,8 @@ fn main() -> Result<(), String> {
     // init logger
     logger_init(&clap_matches);
 
+    // TODO: catch signals
+
     // load profiles
     let config_folder = {
         let dir = clap_matches.value_of("profiles-dir").unwrap(); // clap sets default

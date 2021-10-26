@@ -23,11 +23,24 @@ pub struct BacklogWindow {
     scroll: Arc<ScrolledWindow>,
     buffer: Arc<TextBuffer>,
     auto_scroll: Arc<CheckButton>,
+
+    backlog: Arc<Mutex<String>>,
     scheduled_fn_ids: Arc<Mutex<Vec<SourceId>>>,
 }
 
-impl Default for BacklogWindow {
-    fn default() -> Self {
+impl Drop for BacklogWindow {
+    fn drop(&mut self) {
+        trace!("BacklogWindow getting dropped.");
+        // stop all scheduled functions
+        for id in util::mutex_lock(&self.scheduled_fn_ids).drain(..) {
+            glib::source::source_remove(id);
+        }
+    }
+}
+
+impl BacklogWindow {
+    /// Create a new `BacklogWindow` and fill with existing backlog.
+    pub fn with_backlog(backlog: Arc<Mutex<String>>, events_tx: Sender<AppEvent>) -> Self {
         // compose window
         let text_view = TextView::builder()
             .cursor_visible(false)
@@ -75,8 +88,13 @@ impl Default for BacklogWindow {
             scroll: scroll_box.into(),
             buffer: text_view.buffer().unwrap().into(), // `TextView::new` creates buffer
             auto_scroll: scroll_checkbox.into(),
+            backlog,
             scheduled_fn_ids: Mutex::new(vec![]).into(),
         };
+
+        // insert backlog
+        ret.buffer.place_cursor(&ret.buffer.end_iter());
+        ret.buffer.insert_at_cursor(&util::mutex_lock(&ret.backlog));
 
         // handle auto-scroll
         let scroll = Arc::clone(&ret.scroll);
@@ -93,37 +111,14 @@ impl Default for BacklogWindow {
         );
         util::mutex_lock(&ret.scheduled_fn_ids).push(id);
 
-        ret
-    }
-}
-
-impl Drop for BacklogWindow {
-    fn drop(&mut self) {
-        trace!("BacklogWindow getting dropped.");
-        // stop all scheduled functions
-        for id in util::mutex_lock(&self.scheduled_fn_ids).drain(..) {
-            glib::source::source_remove(id);
-        }
-    }
-}
-
-impl BacklogWindow {
-    /// Create a new `BacklogWindow` and fill with existing backlog.
-    pub fn with_backlog(backlog: &str, events_tx: Sender<AppEvent>) -> Self {
-        let window = Self::default();
-
-        // insert backlog
-        window.buffer.place_cursor(&window.buffer.end_iter());
-        window.buffer.insert_at_cursor(backlog);
-
         // send event on window destroy
-        window.window.connect_destroy(move |_| {
+        ret.window.connect_destroy(move |_| {
             if let Err(_) = events_tx.send(AppEvent::BacklogHide) {
                 error!("Trying to send BacklogHide event, but all receivers have hung up.");
             }
         });
 
-        window
+        ret
     }
 
     /// Simple alias function to show the `BacklogWindow`.
@@ -133,14 +128,19 @@ impl BacklogWindow {
     }
 
     /// Pipe `sslocal` output from a channel to the `TextView`.
+    ///
+    /// Also append these logs to backlog.
     pub fn pipe(&mut self, stdout_rx: Receiver<String>) {
         let buffer = Arc::clone(&self.buffer);
+        let backlog = Arc::clone(&self.backlog);
         let id = glib::source::timeout_add_local(
             Duration::from_millis(100), // 10fps
             move || {
                 stdout_rx.try_iter().for_each(|s| {
                     buffer.place_cursor(&buffer.end_iter());
                     buffer.insert_at_cursor(&s);
+
+                    util::mutex_lock(&backlog).push_str(&s);
                 });
                 Continue(true)
             },
@@ -151,6 +151,8 @@ impl BacklogWindow {
 
 #[cfg(test)]
 mod test {
+    use std::sync::Mutex;
+
     use crossbeam_channel::unbounded as unbounded_channel;
 
     use super::BacklogWindow;
@@ -159,7 +161,7 @@ mod test {
     fn show_default_window_with_backlog() {
         gtk::init().unwrap();
         let (events_tx, _) = unbounded_channel();
-        BacklogWindow::with_backlog("Mock backlog", events_tx).show();
+        BacklogWindow::with_backlog(Mutex::new("Mock backlog".to_string()).into(), events_tx).show();
         gtk::main();
     }
 }

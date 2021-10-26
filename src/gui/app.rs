@@ -90,10 +90,10 @@ impl GTKApp {
                     }
                     None => {
                         let pm_inner = util::rwlock_read(&self.profile_manager);
-                        let backlog = util::mutex_lock(&pm_inner.backlog);
 
                         debug!("Opening backlog window");
-                        let mut window = BacklogWindow::with_backlog(&backlog, self.events_tx.clone());
+                        let mut window =
+                            BacklogWindow::with_backlog(Arc::clone(&pm_inner.backlog), self.events_tx.clone());
                         window.pipe(pm_inner.stdout_rx.clone());
                         window.pipe(pm_inner.stderr_rx.clone());
                         window.show();

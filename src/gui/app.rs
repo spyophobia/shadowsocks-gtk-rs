@@ -113,7 +113,7 @@ impl GTKApp {
                         error!("Cannot switch to profile \"{}\": {}", name, err);
                     }
                 }
-                Stop => {
+                ManualStop => {
                     let mut pm_inner = util::rwlock_write(&self.profile_manager);
                     if pm_inner.is_active() {
                         info!("Sending stop signal to sslocal");

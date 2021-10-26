@@ -91,10 +91,10 @@ pub fn build_and_show(
     tray.add_separator();
 
     // add other static menu entries
-    let stop_tx = events_tx.clone();
+    let manual_stop_tx = events_tx.clone();
     tray.add_menu_item("Stop sslocal", move || {
-        if let Err(_) = stop_tx.send(AppEvent::Stop) {
-            error!("Trying to send Stop event, but all receivers have hung up.");
+        if let Err(_) = manual_stop_tx.send(AppEvent::ManualStop) {
+            error!("Trying to send ManualStop event, but all receivers have hung up.");
         }
     });
     let backlog_tx = events_tx.clone();

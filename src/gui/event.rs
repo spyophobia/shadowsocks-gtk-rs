@@ -10,6 +10,6 @@ pub enum AppEvent {
 
     // core
     SwitchProfile(ConfigProfile),
-    Stop,
+    ManualStop,
     Quit,
 }

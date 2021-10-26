@@ -2,6 +2,7 @@
 //! the logs emitted by `sslocal`.
 
 use std::{
+    rc::Rc,
     sync::{Arc, Mutex},
     time::Duration,
 };
@@ -20,19 +21,19 @@ use super::AppEvent;
 #[derive(Debug)]
 pub struct BacklogWindow {
     window: ApplicationWindow,
-    scroll: Arc<ScrolledWindow>,
-    buffer: Arc<TextBuffer>,
-    auto_scroll: Arc<CheckButton>,
+    scroll: Rc<ScrolledWindow>,
+    buffer: Rc<TextBuffer>,
+    auto_scroll: Rc<CheckButton>,
 
     backlog: Arc<Mutex<String>>,
-    scheduled_fn_ids: Arc<Mutex<Vec<SourceId>>>,
+    scheduled_fn_ids: Vec<SourceId>,
 }
 
 impl Drop for BacklogWindow {
     fn drop(&mut self) {
         trace!("BacklogWindow getting dropped.");
         // stop all scheduled functions
-        for id in util::mutex_lock(&self.scheduled_fn_ids).drain(..) {
+        for id in self.scheduled_fn_ids.drain(..) {
             glib::source::source_remove(id);
         }
     }
@@ -83,13 +84,13 @@ impl BacklogWindow {
             .title("Log Viewer")
             .build();
 
-        let ret = Self {
+        let mut ret = Self {
             window,
             scroll: scroll_box.into(),
             buffer: text_view.buffer().unwrap().into(), // `TextView::new` creates buffer
             auto_scroll: scroll_checkbox.into(),
             backlog,
-            scheduled_fn_ids: Mutex::new(vec![]).into(),
+            scheduled_fn_ids: vec![],
         };
 
         // insert backlog
@@ -97,8 +98,8 @@ impl BacklogWindow {
         ret.buffer.insert_at_cursor(&util::mutex_lock(&ret.backlog));
 
         // handle auto-scroll
-        let scroll = Arc::clone(&ret.scroll);
-        let auto_scroll = Arc::clone(&ret.auto_scroll);
+        let scroll = Rc::clone(&ret.scroll);
+        let auto_scroll = Rc::clone(&ret.auto_scroll);
         let id = glib::source::timeout_add_local(
             Duration::from_millis(100), // 10fps
             move || {
@@ -109,7 +110,7 @@ impl BacklogWindow {
                 Continue(true)
             },
         );
-        util::mutex_lock(&ret.scheduled_fn_ids).push(id);
+        ret.scheduled_fn_ids.push(id);
 
         // send event on window destroy
         ret.window.connect_destroy(move |_| {
@@ -131,7 +132,7 @@ impl BacklogWindow {
     ///
     /// Also append these logs to backlog.
     pub fn pipe(&mut self, stdout_rx: Receiver<String>) {
-        let buffer = Arc::clone(&self.buffer);
+        let buffer = Rc::clone(&self.buffer);
         let backlog = Arc::clone(&self.backlog);
         let id = glib::source::timeout_add_local(
             Duration::from_millis(100), // 10fps
@@ -145,7 +146,7 @@ impl BacklogWindow {
                 Continue(true)
             },
         );
-        util::mutex_lock(&self.scheduled_fn_ids).push(id);
+        self.scheduled_fn_ids.push(id);
     }
 }
 

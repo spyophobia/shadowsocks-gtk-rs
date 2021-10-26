@@ -266,7 +266,7 @@ impl ProfileManager {
     pub fn resume_from(state: &AppState, profiles: &[&ConfigProfile], events_tx: Sender<AppEvent>) -> Self {
         let mut pm = Self::new(state.on_fail, events_tx);
         match state.most_recent_profile.as_str() {
-            "" => info!("Most recent profile is none; will not attempt to resume"),
+            "" => debug!("Most recent profile is none; will not attempt to resume"),
             name => {
                 let name_hit = profiles.iter().find(|&&p| p.display_name == name);
                 match name_hit {

@@ -5,7 +5,7 @@ use std::{fmt, rc::Rc, sync::RwLock};
 use crossbeam_channel::Sender;
 use gtk::{prelude::*, Menu, MenuItem, RadioMenuItem, SeparatorMenuItem};
 use libappindicator::{AppIndicator, AppIndicatorStatus};
-use log::error;
+use log::{debug, error};
 
 use super::AppEvent;
 use crate::{io::config_loader::ConfigFolder, util};
@@ -103,6 +103,7 @@ impl TrayItem {
     /// Notify the tray about sslocal stoppage (primarily, due to error),
     /// without emitting a `ManualStop` event.
     pub fn notify_sslocal_stop(&mut self) {
+        debug!("Setting tray to stopped state");
         *util::rwlock_write(&self.manual_stop_item.1) = false; // set listen disable
         self.manual_stop_item.0.set_active(true);
         *util::rwlock_write(&self.manual_stop_item.1) = true; // set listen enable

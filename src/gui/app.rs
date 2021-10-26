@@ -135,6 +135,7 @@ impl GTKApp {
                     let _ = pm.try_stop();
 
                     // drop all optional windows
+                    debug!("Closing all optional windows");
                     drop(self.backlog_window.take());
 
                     gtk::main_quit();
@@ -143,12 +144,10 @@ impl GTKApp {
                     // this event could be received because an old instance is stopped
                     // and a new one is started, therefore we first check for active instance
                     if !util::rwlock_read(&self.profile_manager).is_active() {
-                        debug!("Setting tray to stopped state");
                         self.tray.notify_sslocal_stop();
                     }
                 }
                 ErrorStop => {
-                    debug!("Setting tray to stopped state");
                     self.tray.notify_sslocal_stop();
                 }
             }

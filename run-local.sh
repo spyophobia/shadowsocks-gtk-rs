@@ -8,4 +8,5 @@ cargo run --release -- \
   -v \
   --profiles-dir "./example-config-profiles" \
   --app-state "./local-run/app-state.yaml" \
-  --icon-theme-dir "./res/logo"
+  --icon-theme-dir "./res/logo" \
+  $1 # allows easy adjustment of verbosity level

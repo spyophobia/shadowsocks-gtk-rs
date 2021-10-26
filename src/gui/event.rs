@@ -4,12 +4,14 @@ use crate::io::config_loader::ConfigProfile;
 
 #[derive(Debug, Clone)]
 pub enum AppEvent {
-    // GUI
+    // from GUI
     BacklogShow,
     BacklogHide,
-
-    // core
     SwitchProfile(ConfigProfile),
     ManualStop,
     Quit,
+
+    // from core
+    OkStop,
+    ErrorStop,
 }

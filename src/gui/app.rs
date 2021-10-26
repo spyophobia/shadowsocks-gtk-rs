@@ -43,12 +43,12 @@ impl GTKApp {
 
         // resume core
         let app_state_path = clap_matches.value_of("app-state-path").unwrap().into(); // clap sets default
+        let (events_tx, events_rx) = unbounded_channel();
         let pm_arc = {
             let previous_state = AppState::from_file(&app_state_path).unwrap(); // Ok guaranteed by clap validator
-            let pm = ProfileManager::resume_from(&previous_state, &config_folder.get_profiles());
+            let pm = ProfileManager::resume_from(&previous_state, &config_folder.get_profiles(), events_tx.clone());
             Arc::new(RwLock::new(pm))
         };
-        let (events_tx, events_rx) = unbounded_channel();
 
         // build permanent GUI components
         let tray = {
@@ -127,8 +127,9 @@ impl GTKApp {
                     // cleanup
                     let mut pm = util::rwlock_write(&self.profile_manager);
                     // save app state
-                    if let Err(err) = pm.snapshot().write_to_file(&self.app_state_path) {
-                        error!("Failed to save app state: {}", err);
+                    match pm.snapshot().write_to_file(&self.app_state_path) {
+                        Ok(_) => info!("App state saved to {:?}", self.app_state_path),
+                        Err(err) => error!("Failed to save app state: {}", err),
                     };
                     // stop any running `sslocal` process
                     let _ = pm.try_stop();
@@ -137,6 +138,18 @@ impl GTKApp {
                     drop(self.backlog_window.take());
 
                     gtk::main_quit();
+                }
+                OkStop => {
+                    // this event could be received because an old instance is stopped
+                    // and a new one is started, therefore we first check for active instance
+                    if !util::rwlock_read(&self.profile_manager).is_active() {
+                        debug!("Setting tray to stopped state");
+                        self.tray.notify_sslocal_stop();
+                    }
+                }
+                ErrorStop => {
+                    debug!("Setting tray to stopped state");
+                    self.tray.notify_sslocal_stop();
                 }
             }
         }

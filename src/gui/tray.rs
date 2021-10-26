@@ -1,6 +1,6 @@
 //! This module contains code that creates a tray item.
 
-use std::fmt;
+use std::{fmt, rc::Rc, sync::RwLock};
 
 use crossbeam_channel::Sender;
 use gtk::{prelude::*, Menu, MenuItem, RadioMenuItem, SeparatorMenuItem};
@@ -8,7 +8,7 @@ use libappindicator::{AppIndicator, AppIndicatorStatus};
 use log::error;
 
 use super::AppEvent;
-use crate::io::config_loader::ConfigFolder;
+use crate::{io::config_loader::ConfigFolder, util};
 
 const TRAY_TITLE: &str = "Shadowsocks GTK";
 
@@ -16,6 +16,8 @@ const TRAY_TITLE: &str = "Shadowsocks GTK";
 pub struct TrayItem {
     ai: AppIndicator,
     menu: Menu,
+    /// The `RadioMenuItem` with its listen enable flag.
+    manual_stop_item: (RadioMenuItem, Rc<RwLock<bool>>),
 }
 
 impl fmt::Debug for TrayItem {
@@ -37,6 +39,22 @@ impl TrayItem {
         icon_theme_dir: Option<&str>,
         events_tx: Sender<AppEvent>,
     ) -> Self {
+        // create stop button up top because `TrayItem` has a mandatory field
+        let manual_stop_item = {
+            let events_tx = events_tx.clone();
+            let listen_enable_0 = Rc::new(RwLock::new(true));
+            let listen_enable_1 = Rc::clone(&listen_enable_0);
+            let menu_item = RadioMenuItem::with_label("Stop sslocal");
+            menu_item.connect_toggled(move |item| {
+                if item.is_active() && *util::rwlock_read(&listen_enable_0) {
+                    if let Err(_) = events_tx.send(AppEvent::ManualStop) {
+                        error!("Trying to send ManualStop event, but all receivers have hung up.");
+                    }
+                }
+            });
+            (menu_item, listen_enable_1)
+        };
+
         // create tray with icon
         let mut tray = Self {
             ai: match icon_theme_dir {
@@ -45,28 +63,23 @@ impl TrayItem {
                 None => AppIndicator::new(TRAY_TITLE, icon_name),
             },
             menu: Menu::new(),
+            manual_stop_item,
         };
         tray.ai.set_status(AppIndicatorStatus::Active);
 
-        // add dynamic profiles and stop button
+        // add dynamic profiles
         tray.add_label("Profiles");
-        let manual_stop_item = RadioMenuItem::with_label("Stop sslocal");
-        for item in menu_tree_from_root_config_folder(config_folder, &manual_stop_item, events_tx.clone()) {
+        tray.add_separator();
+        for item in menu_tree_from_root_config_folder(config_folder, &tray.manual_stop_item.0, events_tx.clone()) {
             match item {
                 ConfigMenuItem::Profile(item) => tray.menu.append(&item),
                 ConfigMenuItem::Group(item) => tray.menu.append(&item),
             }
         }
         tray.add_separator();
-        let manual_stop_tx = events_tx.clone();
-        manual_stop_item.connect_toggled(move |item| {
-            if item.is_active() {
-                if let Err(_) = manual_stop_tx.send(AppEvent::ManualStop) {
-                    error!("Trying to send ManualStop event, but all receivers have hung up.");
-                }
-            }
-        });
-        tray.menu.append(&manual_stop_item);
+
+        // add stop button (previously created)
+        tray.menu.append(&tray.manual_stop_item.0);
 
         // add other static menu entries
         let backlog_tx = events_tx.clone();
@@ -85,6 +98,14 @@ impl TrayItem {
         // Wrap up
         tray.finalise();
         tray
+    }
+
+    /// Notify the tray about sslocal stoppage (primarily, due to error),
+    /// without emitting a `ManualStop` event.
+    pub fn notify_sslocal_stop(&mut self) {
+        *util::rwlock_write(&self.manual_stop_item.1) = false; // set listen disable
+        self.manual_stop_item.0.set_active(true);
+        *util::rwlock_write(&self.manual_stop_item.1) = true; // set listen enable
     }
 
     /// Append a separator to the tray item's menu.

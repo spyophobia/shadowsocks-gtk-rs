@@ -18,6 +18,7 @@ use nix::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    gui::AppEvent,
     io::{app_state::AppState, config_loader::ConfigProfile},
     util::{
         self,
@@ -187,8 +188,11 @@ impl ActiveSSInstance {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum OnFailure {
     /// Set `ProfileManager` to inactive state on failure.
+    ///
+    /// TODO: describe `prompt` (event)
     Halt { prompt: bool },
-    /// Attempt to restart `sslocal`, up to the limit specified by `limit`.
+    /// Attempt to restart `sslocal`, up to the limit specified by `limit`,
+    /// when an `ErrorStop` event will be emitted.
     ///
     /// Scenarios in which a restart will not be attempted:
     /// - Limit reached
@@ -201,6 +205,7 @@ pub enum OnFailure {
 #[derive(Debug)]
 pub struct ProfileManager {
     on_fail: OnFailure,
+    events_tx: Sender<AppEvent>,
     /// Inner value of `None` means `Self` is inactive.
     active_instance: Arc<RwLock<Option<ActiveSSInstance>>>,
 
@@ -241,11 +246,12 @@ impl Drop for ProfileManager {
 }
 
 impl ProfileManager {
-    pub fn new(on_fail: OnFailure) -> Self {
+    pub fn new(on_fail: OnFailure, events_tx: Sender<AppEvent>) -> Self {
         let (stdout_tx, stdout_rx) = unbounded_channel();
         let (stderr_tx, stderr_rx) = unbounded_channel();
         Self {
             on_fail,
+            events_tx,
             active_instance: RwLock::new(None).into(),
             stdout_tx,
             stderr_tx,
@@ -257,8 +263,8 @@ impl ProfileManager {
     }
 
     /// Resume from a previously saved state.
-    pub fn resume_from(state: &AppState, profiles: &[&ConfigProfile]) -> Self {
-        let mut pm = Self::new(state.on_fail);
+    pub fn resume_from(state: &AppState, profiles: &[&ConfigProfile], events_tx: Sender<AppEvent>) -> Self {
+        let mut pm = Self::new(state.on_fail, events_tx);
         match state.most_recent_profile.as_str() {
             "" => info!("Most recent profile is none; will not attempt to resume"),
             name => {
@@ -304,21 +310,23 @@ impl ProfileManager {
         new_instance.pipe_stderr(self.stderr_tx.clone())?;
 
         // monitor for failure
-        let exit_alert = new_instance.alert_on_exit()?;
+        let exit_alert_rx = new_instance.alert_on_exit()?;
 
         // set
         *util::rwlock_write(&self.active_instance) = Some(new_instance);
 
         // monitor
-        self.set_on_fail(exit_alert, self.on_fail)?;
+        self.set_on_fail(exit_alert_rx)?;
 
         Ok(())
     }
 
     /// Starts a monitoring thread that waits for the underlying `sslocal` instance
-    /// to fail, when it will attempt to perform the action specified by `on_fail`.
-    pub fn set_on_fail(&mut self, listener: Receiver<ExitStatus>, on_fail: OnFailure) -> io::Result<()> {
+    /// to fail, when it will attempt to perform the action specified by `Self::on_fail`.
+    pub fn set_on_fail(&mut self, listener: Receiver<ExitStatus>) -> io::Result<()> {
         // variables that need to be moved into thread
+        let on_fail = self.on_fail;
+        let events_tx = self.events_tx.clone();
         let instance = Arc::clone(&self.active_instance);
         let profile = self
             .current_profile()
@@ -349,6 +357,9 @@ impl ProfileManager {
                             Some(inst) => inst.to_string(),
                             None => {
                                 debug!("ProfileManager has been set to inactive; auto-restart stopped");
+                                if let Err(_) = events_tx.send(AppEvent::OkStop) {
+                                    error!("Trying to send OkStop event, but all receivers have hung up.");
+                                }
                                 break;
                             }
                         };
@@ -363,14 +374,20 @@ impl ProfileManager {
                                     "Instance {} has exited successfully; auto-restart stopped",
                                     instance_name
                                 );
+                                if let Err(_) = events_tx.send(AppEvent::OkStop) {
+                                    error!("Trying to send OkStop event, but all receivers have hung up.");
+                                }
                                 break;
                             }
                             Err(err) => {
-                                // we no longer know the status of `sslocal`
-                                warn!(
+                                // we no longer know the status of `sslocal`, so fail fast
+                                error!(
                                     "The exit alert daemon for instance {} has hung up: {}; auto-restart stopped",
                                     instance_name, err
                                 );
+                                if let Err(_) = events_tx.send(AppEvent::ErrorStop) {
+                                    error!("Trying to send ErrorStop event, but all receivers have hung up.");
+                                }
                                 break;
                             }
                             Ok(bad_status) => {
@@ -387,6 +404,9 @@ impl ProfileManager {
                                 profile_name
                             );
                             error!("{}", err);
+                            if let Err(_) = events_tx.send(AppEvent::ErrorStop) {
+                                error!("Trying to send ErrorStop event, but all receivers have hung up.");
+                            }
                             break;
                         }
 
@@ -417,6 +437,9 @@ impl ProfileManager {
                                     "Failed to restart with profile \"{}\": {}. Failure monitor daemon stopping",
                                     profile_name, err
                                 );
+                                if let Err(_) = events_tx.send(AppEvent::ErrorStop) {
+                                    error!("Trying to send ErrorStop event, but all receivers have hung up.");
+                                }
                                 break;
                             }
                         };
@@ -459,6 +482,7 @@ mod test {
         time::Duration,
     };
 
+    use crossbeam_channel::unbounded as unbounded_channel;
     use log::debug;
 
     use super::*;
@@ -480,7 +504,8 @@ mod test {
         let on_fail = OnFailure::Restart {
             limit: NaiveLeakyBucketConfig::new(3, Duration::from_secs(10)),
         };
-        let mut mgr = ProfileManager::new(on_fail);
+        let (events_tx, _) = unbounded_channel();
+        let mut mgr = ProfileManager::new(on_fail, events_tx);
 
         // pipe output
         let stdout = mgr.stdout_rx.clone();

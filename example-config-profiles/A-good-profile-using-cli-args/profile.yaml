@@ -1,0 +1,25 @@
+---
+# this is an example of a good profile with sufficient `sslocal` launch parameters
+
+display_name: "Example Profile 1" # optional, defaults to current directory's name
+pwd: "." # optional, defaults to `.` (current directory of this YAML file)
+bin_path: "sslocal" # optional, defaults to `sslocal` (performs lookup in `$PATH`)
+
+# optional, defaults to `None`
+# must contain exactly two values if specified
+local_addr:
+  - "::" # bind address, `0.0.0.0` == "All IPv4", `::` == "All IPv6 & IPv4"
+  - 1080 # port number
+
+# optional, defaults to `None`
+# must contain exactly two values if specified
+server_addr:
+  - "www.example.org" # server address
+  - 443 # port number
+
+password: "foobar" # optional, defaults to `None`
+encrypt_method: "aes-256-gcm" # optional, defaults to `None`
+
+#config_path: "" # you can still have a `config_path` field if you really want to
+extra_args: # optional, a list of tokens passed to `sslocal`, defaults to `[]` (empty)
+  - "--single-threaded"

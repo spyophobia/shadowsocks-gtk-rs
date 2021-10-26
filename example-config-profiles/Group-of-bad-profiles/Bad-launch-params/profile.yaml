@@ -5,6 +5,6 @@
 
 display_name: "Does not launch"
 # we do not provide `sslocal` with sufficient launch parameters
-#ss_config_path: "./ss.json"
+#config_path: "./ss.json"
 #extra_args:
 #  - "--tcp-fast-open"

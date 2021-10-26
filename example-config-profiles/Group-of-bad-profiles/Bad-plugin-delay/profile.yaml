@@ -3,4 +3,4 @@
 # however the plugin is misbehaving and errors
 
 display_name: "Plugin fails delayed"
-ss_config_path: "./ss.json"
+config_path: "./ss.json"

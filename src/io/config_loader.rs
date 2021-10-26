@@ -225,8 +225,11 @@ impl ConfigFolder {
             .to_string();
 
         // if directory contains the profile definition file, then consider it a profile
-        let mut profile_yaml_path = path.clone();
-        profile_yaml_path.push(PROFILE_DEF_FILE_NAME);
+        let profile_yaml_path = {
+            let mut p = path.clone();
+            p.push(PROFILE_DEF_FILE_NAME);
+            p
+        };
         if profile_yaml_path.is_file() {
             let content = read_to_string(profile_yaml_path)?;
             let mut profile: ConfigProfileSerde = serde_yaml::from_str(&content)?;

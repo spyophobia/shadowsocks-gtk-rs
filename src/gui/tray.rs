@@ -10,6 +10,8 @@ use log::error;
 use super::AppEvent;
 use crate::io::config_loader::ConfigFolder;
 
+const TRAY_TITLE: &str = "Shadowsocks GTK";
+
 #[cfg(target_os = "linux")]
 pub struct TrayItem {
     ai: AppIndicator,
@@ -26,19 +28,63 @@ impl fmt::Debug for TrayItem {
 }
 
 impl TrayItem {
-    /// Create a new `TrayItem` without showing it.
+    /// Build the tray item and show it, returning the `TrayItem`.
     ///
-    /// The tray item will only be shown when it contains items.
-    pub fn new(title: &str, icon: &str, theme_path: Option<&str>) -> Self {
-        let mut tray_item = Self {
-            ai: match theme_path {
-                Some(p) => AppIndicator::with_path(title, icon, p),
-                None => AppIndicator::new(title, icon),
+    /// Should only be called once.
+    pub fn build_and_show(
+        config_folder: &ConfigFolder,
+        icon_name: &str,
+        icon_theme_dir: Option<&str>,
+        events_tx: Sender<AppEvent>,
+    ) -> Self {
+        // create tray with icon
+        let mut tray = Self {
+            ai: match icon_theme_dir {
+                // BUG: For some reason the title is not set?
+                Some(p) => AppIndicator::with_path(TRAY_TITLE, icon_name, p),
+                None => AppIndicator::new(TRAY_TITLE, icon_name),
             },
             menu: Menu::new(),
         };
-        tray_item.ai.set_status(AppIndicatorStatus::Active);
-        tray_item
+        tray.ai.set_status(AppIndicatorStatus::Active);
+
+        // add dynamic profiles and stop button
+        tray.add_label("Profiles");
+        let manual_stop_item = RadioMenuItem::with_label("Stop sslocal");
+        for item in menu_tree_from_root_config_folder(config_folder, &manual_stop_item, events_tx.clone()) {
+            match item {
+                ConfigMenuItem::Profile(item) => tray.menu.append(&item),
+                ConfigMenuItem::Group(item) => tray.menu.append(&item),
+            }
+        }
+        tray.add_separator();
+        let manual_stop_tx = events_tx.clone();
+        manual_stop_item.connect_toggled(move |item| {
+            if item.is_active() {
+                if let Err(_) = manual_stop_tx.send(AppEvent::ManualStop) {
+                    error!("Trying to send ManualStop event, but all receivers have hung up.");
+                }
+            }
+        });
+        tray.menu.append(&manual_stop_item);
+
+        // add other static menu entries
+        let backlog_tx = events_tx.clone();
+        tray.add_menu_item("Show sslocal Output", move || {
+            if let Err(_) = backlog_tx.send(AppEvent::BacklogShow) {
+                error!("Trying to send BacklogShow event, but all receivers have hung up.");
+            }
+        });
+        let quit_tx = events_tx.clone();
+        tray.add_menu_item("Quit", move || {
+            if let Err(_) = quit_tx.send(AppEvent::Quit) {
+                error!("Trying to send Quit event, but all receivers have hung up.");
+            }
+        });
+
+        // Wrap up
+        tray.finalise();
+        tray
     }
 
     /// Append a separator to the tray item's menu.
@@ -74,58 +120,6 @@ impl TrayItem {
 enum ConfigMenuItem {
     Profile(RadioMenuItem),
     Group(MenuItem),
-}
-
-/// Build the tray item and show it, returning the `TrayItem`.
-///
-/// Should only be called once.
-pub fn build_and_show(
-    config_folder: &ConfigFolder,
-    icon_name: &str,
-    icon_theme_dir: Option<&str>,
-    events_tx: Sender<AppEvent>,
-) -> TrayItem {
-    // create tray with icon
-    // BUG: For some reason the title is not this?
-    let mut tray = TrayItem::new("Shadowsocks GTK", icon_name, icon_theme_dir);
-
-    // add dynamic profiles and stop button
-    tray.add_label("Profiles");
-    let manual_stop_item = RadioMenuItem::with_label("Stop sslocal");
-    for item in menu_tree_from_root_config_folder(config_folder, &manual_stop_item, events_tx.clone()) {
-        match item {
-            ConfigMenuItem::Profile(item) => tray.menu.append(&item),
-            ConfigMenuItem::Group(item) => tray.menu.append(&item),
-        }
-    }
-    tray.add_separator();
-    let manual_stop_tx = events_tx.clone();
-    manual_stop_item.connect_toggled(move |item| {
-        if item.is_active() {
-            if let Err(_) = manual_stop_tx.send(AppEvent::ManualStop) {
-                error!("Trying to send ManualStop event, but all receivers have hung up.");
-            }
-        }
-    });
-    tray.menu.append(&manual_stop_item);
-
-    // add other static menu entries
-    let backlog_tx = events_tx.clone();
-    tray.add_menu_item("Show sslocal Output", move || {
-        if let Err(_) = backlog_tx.send(AppEvent::BacklogShow) {
-            error!("Trying to send BacklogShow event, but all receivers have hung up.");
-        }
-    });
-    let quit_tx = events_tx.clone();
-    tray.add_menu_item("Quit", move || {
-        if let Err(_) = quit_tx.send(AppEvent::Quit) {
-            error!("Trying to send Quit event, but all receivers have hung up.");
-        }
-    });
-
-    // Wrap up
-    tray.finalise();
-    tray
 }
 
 /// Wrapper around `menu_tree_from_config_folder_recurse` for the root `ConfigFolder`.

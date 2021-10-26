@@ -13,7 +13,6 @@ use gtk::prelude::*;
 use log::{debug, error, info, warn};
 
 use crate::{
-    gui::tray,
     io::{app_state::AppState, config_loader::ConfigFolder},
     profile_manager::ProfileManager,
     util,
@@ -65,7 +64,7 @@ impl GTKApp {
                     }
                 },
             );
-            tray::build_and_show(config_folder, &icon_name, theme_dir.as_deref(), events_tx.clone())
+            TrayItem::build_and_show(config_folder, &icon_name, theme_dir.as_deref(), events_tx.clone())
         };
 
         Self {

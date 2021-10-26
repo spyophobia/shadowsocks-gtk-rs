@@ -134,6 +134,9 @@ impl GTKApp {
                     // stop any running `sslocal` process
                     let _ = pm.try_stop();
 
+                    // drop all optional windows
+                    drop(self.backlog_window.take());
+
                     gtk::main_quit();
                 }
             }

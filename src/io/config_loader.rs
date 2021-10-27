@@ -10,11 +10,14 @@ use std::{
     process::{Child, Command, Stdio},
 };
 
-use log::warn;
+use log::{debug, warn};
 use serde::{Deserialize, Serialize};
 
 /// The default path of `sslocal` binary, if not defined by profile
 const SSLOCAL_DEFAULT_PATH: &str = "sslocal";
+/// The existence of this file in a directory marks the directory
+/// as ignored during the loading process.
+const LOAD_IGNORE_FILE_NAME: &str = ".ss_ignore";
 /// The existence of this file in a directory indicates that
 /// this directory is a connection profile.
 const PROFILE_DEF_FILE_NAME: &str = "profile.yaml";
@@ -151,6 +154,8 @@ pub struct ConfigGroup {
 pub enum ConfigLoadError {
     /// Each profile should be its own directory, which can be placed under other directories to form groups.
     NotDirectory(String),
+    /// The directory contains the ignore file.
+    Ignored,
     /// The profile definition file cannot be parsed.
     ProfileParseError(serde_yaml::Error),
     /// The directory contains files (which means it's considered a profile folder),
@@ -168,6 +173,7 @@ impl Display for ConfigLoadError {
 
         match self {
             NotDirectory(s) => write!(f, "ConfigLoadError-NotDirectory: {}", s),
+            Ignored => write!(f, "ConfigLoadError-Ignored"),
             ProfileParseError(e) => write!(f, "ConfigLoadError-ProfileParseError: {}", e),
             NoProfileDef(s) => write!(f, "ConfigLoadError-NoProfileDef: {}", s),
             EmptyGroup(s) => write!(f, "ConfigLoadError-EmptyGroup: {}", s),
@@ -216,6 +222,16 @@ impl ConfigFolder {
         if !path.is_dir() {
             return Err(ConfigLoadError::NotDirectory(full_path_str.into()));
         }
+        // make sure directory doesn't contain the ignore file
+        let ignore_file_path = {
+            let mut p = path.clone();
+            p.push(LOAD_IGNORE_FILE_NAME);
+            p
+        };
+        if ignore_file_path.is_file() {
+            return Err(ConfigLoadError::Ignored);
+        }
+
         // use directory name as folder's display name
         let display_name = path
             .file_name()
@@ -271,6 +287,7 @@ impl ConfigFolder {
             match ent_res {
                 Ok(ent) => match Self::from_path_recurse(ent.path()) {
                     Ok(cf) => subdirs.push(cf),
+                    Err(ConfigLoadError::Ignored) => debug!("Ignored a directory and its children: {:?}", ent.path()),
                     Err(err) => warn!("Cannot load a subdirectory: {}", err),
                 },
                 Err(err) => warn!("Cannot open a file or directory: {}", err),

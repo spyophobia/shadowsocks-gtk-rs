@@ -30,9 +30,11 @@ Root-group
 You can put multiple "profile directories" under a single "group directory" to make a group. The group's display name is the name of this "group directory".
 You can nest "group directories" to as many layers as you want, but I doubt its practicality beyond layer 2 or 3.
 
-Note that a "group directory" can only contain "profile directories" and other "group directories", not regular files.
+Note that a "group directory" can only have "profile directories" and other "group directories" as its **direct descendants**, not regular files.
 
 Also note that symlinks are not currently supported in "group directories". I recognise their potential usefulness, but I am concerned about circular symlinking causing unnecessary trouble.
+### Other miscellaneous details
+ - You can create an empty file named `.ss_ignore` in any "profile directory" or "group directory" to disable it and all its children.
 
 ## Why did I pick GTK instead of QT?
 GTK's rust binding has significantly better support than that of QT. I'm too lazy to support both so the choice is obvious.

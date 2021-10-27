@@ -314,11 +314,26 @@ impl ConfigFolder {
 
     /// Recursively get all the nested profiles within this `ConfigFolder`,
     /// flattened and returned by reference.
+    #[allow(dead_code)]
     pub fn get_profiles(&self) -> Vec<&ConfigProfile> {
         use ConfigFolder::*;
         match self {
             Profile(p) => vec![p],
             Group(g) => g.content.iter().flat_map(|cf| cf.get_profiles()).collect(),
+        }
+    }
+
+    /// Recursively searches all the nested profiles within this `ConfigFolder`
+    /// for a `ConfigProfile` with a matching name.
+    pub fn lookup<S>(&self, name: S) -> Option<&ConfigProfile>
+    where
+        S: AsRef<str>,
+    {
+        use ConfigFolder::*;
+        match self {
+            Profile(p) if p.display_name == name.as_ref() => Some(p),
+            Profile(_) => None,
+            Group(g) => g.content.iter().find_map(|cf| cf.lookup(name.as_ref())),
         }
     }
 }

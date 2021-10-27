@@ -19,7 +19,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     gui::AppEvent,
-    io::{app_state::AppState, config_loader::ConfigProfile},
+    io::{
+        app_state::AppState,
+        config_loader::{ConfigFolder, ConfigProfile},
+    },
     util::{
         self,
         leaky_bucket::{NaiveLeakyBucket, NaiveLeakyBucketConfig},
@@ -263,20 +266,17 @@ impl ProfileManager {
     }
 
     /// Resume from a previously saved state.
-    pub fn resume_from(state: &AppState, profiles: &[&ConfigProfile], events_tx: Sender<AppEvent>) -> Self {
+    pub fn resume_from(state: &AppState, profiles: &ConfigFolder, events_tx: Sender<AppEvent>) -> Self {
         let mut pm = Self::new(state.on_fail, events_tx);
         match state.most_recent_profile.as_str() {
             "" => debug!("Most recent profile is none; will not attempt to resume"),
-            name => {
-                let name_hit = profiles.iter().find(|&&p| p.display_name == name);
-                match name_hit {
-                    Some(&p) => match pm.switch_to(p.clone()) {
-                        Ok(_) => info!("Successfully resumed with profile \"{}\"", name),
-                        Err(err) => error!("Cannot resume - switch to profile \"{}\" failed: {}", name, err),
-                    },
-                    None => warn!("Cannot resume - profile \"{}\" not found", name),
-                }
-            }
+            name => match profiles.lookup(name) {
+                Some(p) => match pm.switch_to(p.clone()) {
+                    Ok(_) => info!("Successfully resumed with profile \"{}\"", name),
+                    Err(err) => error!("Cannot resume - switch to profile \"{}\" failed: {}", name, err),
+                },
+                None => warn!("Cannot resume - profile \"{}\" not found", name),
+            },
         };
         pm
     }

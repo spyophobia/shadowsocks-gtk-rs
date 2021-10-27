@@ -46,7 +46,7 @@ impl GTKApp {
         let (events_tx, events_rx) = unbounded_channel();
         let pm_arc = {
             let previous_state = AppState::from_file(&app_state_path).unwrap(); // Ok guaranteed by clap validator
-            let pm = ProfileManager::resume_from(&previous_state, &config_folder.get_profiles(), events_tx.clone());
+            let pm = ProfileManager::resume_from(&previous_state, config_folder, events_tx.clone());
             Arc::new(RwLock::new(pm))
         };
 

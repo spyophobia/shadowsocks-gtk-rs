@@ -11,16 +11,11 @@ Therefore it is not far-fetched at all to consider the possibility that our adve
 
 GPL, the license used by this project, is a strong "copyleft" license, meaning that it aggressively promotes open sourcing by compelling all derivative works to also be open source. In simple English, if you compiled your version of this program and share it with others, you must also share your source code, whether or not you have made any changes. This ensures that all legitimate distributions of this software are subject to public scrutiny. ***If you see a distribution of this piece of software without its source code, consider the distributor HOSTILE and delete their files IMMEDIATELY. They may pose an EXISTENTIAL THREAT to your liberty and livelihood. This is NOT a joke.***
 
-That being said, we developers and users of Shadowsocks are not so easily intimidated. I know it's cheesy, but still I would like to quote an excerpt from *"Do You Hear The People Sing?"* which I believe embodies our views on this matter very well:
+That being said, I would like to believe that us developers and users of Shadowsocks are not so easily intimidated. To quote Benjamin Franklin:
+> ***Those who would give up essential liberty, to purchase a little temporary safety, deserve neither.***
 
-> *Will you join in our crusade? Who will be strong and stand with me?*
-> *Beyond the barricade is there a world you long to see?*
-> *Then join in the fight that will give you the right to be free!*
-
- - **We do not hesitate to struggle against what we see as evil;**
- - **We do not relent even in the face of overwhelming odds;**
- - **We do not stop until the eventual future when this grave injustice is forever banished to the annals of despicable history.**
+I am personally determined to stay in and carry on this fight. Will you too?
 
  ---
 
- Spyophobia, 2021-10-12
+ Spyophobia, written 2021-10-12, edited 2021-10-27

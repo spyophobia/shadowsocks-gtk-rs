@@ -170,6 +170,7 @@ impl GTKApp {
         debug!("Closing backlog window");
         drop(self.backlog_window.take());
     }
+    /// Restart the `sslocal` instance with the current profile.
     fn restart(&mut self) {
         let current_profile = util::rwlock_read(&self.profile_manager).current_profile();
         match current_profile {

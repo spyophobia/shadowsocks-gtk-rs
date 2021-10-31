@@ -5,6 +5,7 @@
     "hscrollbar",
     "libgtk",
     "nocapture",
+    "nonblocking",
     "SIGINT",
     "spyophobia",
     "sslocal",

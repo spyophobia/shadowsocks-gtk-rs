@@ -29,9 +29,7 @@ fn main() -> Result<(), String> {
     );
 
     // start app
-    app::run(&clap_matches, &config_folder);
-
-    Ok(())
+    app::run(&clap_matches, config_folder.clone()).map_err(|err| err.to_string())
 }
 
 fn logger_init(matches: &ArgMatches) {

@@ -16,12 +16,10 @@ pub enum AppStateError {
 impl Display for AppStateError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use AppStateError::*;
-
-        let out = match self {
-            ParseError(err) => err.to_string(),
-            IOError(err) => err.to_string(),
-        };
-        write!(f, "{}", out)
+        match self {
+            ParseError(e) => write!(f, "AppStateError-ParseError: {}", e),
+            IOError(e) => write!(f, "AppStateError-IOError: {}", e),
+        }
     }
 }
 

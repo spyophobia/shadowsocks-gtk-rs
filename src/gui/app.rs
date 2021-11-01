@@ -31,6 +31,7 @@ pub enum AppStartError {
     GLibBoolError(glib::BoolError),
     GLibError(glib::Error),
     IOError(std::io::Error),
+    CtrlCError(ctrlc::Error),
 }
 
 impl Display for AppStartError {
@@ -40,6 +41,7 @@ impl Display for AppStartError {
             GLibBoolError(e) => write!(f, "AppStartError-GLibBoolError: {}", e),
             GLibError(e) => write!(f, "AppStartError-GLibError: {}", e),
             IOError(e) => write!(f, "AppStartError-IOError: {}", e),
+            CtrlCError(e) => write!(f, "AppStartError-CtrlCError: {}", e),
         }
     }
 }
@@ -57,6 +59,11 @@ impl From<glib::Error> for AppStartError {
 impl From<std::io::Error> for AppStartError {
     fn from(err: std::io::Error) -> Self {
         Self::IOError(err)
+    }
+}
+impl From<ctrlc::Error> for AppStartError {
+    fn from(err: ctrlc::Error) -> Self {
+        Self::CtrlCError(err)
     }
 }
 
@@ -251,8 +258,8 @@ impl GTKApp {
         gtk::main_quit();
     }
 
-    /// Handles the queued incoming GUI events.
-    fn handle_gui_events(&mut self) {
+    /// Handles the queued incoming app events.
+    fn handle_app_events(&mut self) {
         use AppEvent::*;
         // using `while let` rather than `for` due to borrow checker issue
         while let Some(event) = self.events_rx.try_iter().next() {
@@ -309,11 +316,21 @@ pub fn run(clap_matches: &ArgMatches, config_folder: ConfigFolder) -> Result<(),
     // init app
     let mut app = GTKApp::new(clap_matches, config_folder)?;
 
-    // starts event listeners
+    // catch signals for soft shutdown
+    let events_tx = app.events_tx.clone();
+    ctrlc::set_handler(move || {
+        info!("Signal received, sending Quit event");
+        if let Err(_) = events_tx.send(AppEvent::Quit) {
+            error!("Trying to send Quit event for soft shutdown, but all receivers have hung up.");
+            error!("Performing hard shutdown; the app state may not be saved.");
+        }
+    })?;
+
+    // starts looping event listeners
     let loop_action_id = glib::timeout_add_local(
         Duration::from_millis(10), // 100fps
         move || {
-            app.handle_gui_events();
+            app.handle_app_events();
 
             #[cfg(feature = "runtime_api")]
             app.handle_api_commands();

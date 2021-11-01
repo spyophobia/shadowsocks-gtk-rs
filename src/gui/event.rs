@@ -1,4 +1,4 @@
-//! This module defines events passed between GUI elements.
+//! This module defines events passed between core and GUI elements.
 
 use crate::io::config_loader::ConfigProfile;
 

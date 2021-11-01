@@ -231,7 +231,7 @@ mod test {
         println!(
             "Note 0: you likely need the BSD variant of netcat to be able to connect \
             to Unix sockets (see https://unix.stackexchange.com/a/26781/375550)\n\
-            Note 1: due to my technical limitations and my laziness (mainly the latter) \
+            Note 1: due to technical limitations and my laziness (mainly the latter) \
             the JSON5 command string must be a single line"
         );
         println!(

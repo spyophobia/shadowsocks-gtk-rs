@@ -148,6 +148,11 @@ impl BacklogWindow {
         );
         self.scheduled_fn_ids.push(id);
     }
+
+    /// Simple alias function to close the `BacklogWindow`.
+    pub fn close(&self) {
+        self.window.close();
+    }
 }
 
 #[cfg(test)]

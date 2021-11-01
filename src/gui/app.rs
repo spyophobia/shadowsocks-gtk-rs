@@ -172,10 +172,29 @@ impl GTKApp {
             }
         }
     }
-    /// Hide the backlog window, if currently showing.
-    fn hide_backlog(&mut self) {
-        debug!("Closing backlog window");
-        drop(self.backlog_window.take());
+    /// Drop the backlog window without emitting an extra close event.
+    ///
+    /// Useful when the window has already been closed by an external source
+    /// and we only need to drop the object.
+    fn drop_backlog(&mut self) {
+        match self.backlog_window.take() {
+            None => debug!("Backlog window is None; nothing to drop"),
+            some => {
+                debug!("Dropping backlog window");
+                drop(some);
+            }
+        }
+    }
+    /// Close the backlog window if currently showing.
+    fn close_backlog(&mut self) {
+        match self.backlog_window.take() {
+            None => debug!("Backlog window is None; nothing to close"),
+            Some(w) => {
+                debug!("Closing backlog window");
+                w.close();
+                drop(w);
+            }
+        }
     }
     /// Restart the `sslocal` instance with the current profile.
     fn restart(&mut self) {
@@ -239,7 +258,7 @@ impl GTKApp {
         while let Some(event) = self.events_rx.try_iter().next() {
             match event {
                 BacklogShow => self.show_backlog(),
-                BacklogHide => self.hide_backlog(),
+                BacklogHide => self.drop_backlog(),
                 SwitchProfile(p) => self.switch_profile(p),
                 ManualStop => self.stop(),
                 Quit => self.quit(),
@@ -266,7 +285,7 @@ impl GTKApp {
         while let Some(cmd) = self.api_cmds_rx.try_iter().next() {
             match cmd {
                 BacklogShow => self.show_backlog(),
-                BacklogHide => self.hide_backlog(),
+                BacklogHide => self.close_backlog(),
                 Restart => self.restart(),
                 SwitchProfile(name) => match self.config_folder.lookup(&name).cloned() {
                     Some(p) => {

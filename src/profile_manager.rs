@@ -16,16 +16,16 @@ use nix::{
     unistd::Pid,
 };
 use serde::{Deserialize, Serialize};
+use shadowsocks_gtk_rs::util::{
+    self,
+    leaky_bucket::{NaiveLeakyBucket, NaiveLeakyBucketConfig},
+};
 
 use crate::{
     event::AppEvent,
     io::{
         app_state::AppState,
         config_loader::{ConfigFolder, ConfigProfile},
-    },
-    util::{
-        self,
-        leaky_bucket::{NaiveLeakyBucket, NaiveLeakyBucketConfig},
     },
 };
 
@@ -484,9 +484,10 @@ mod test {
 
     use crossbeam_channel::unbounded as unbounded_channel;
     use log::debug;
+    use shadowsocks_gtk_rs::util::leaky_bucket::NaiveLeakyBucketConfig;
 
     use super::*;
-    use crate::{io::config_loader::ConfigFolder, util::leaky_bucket::NaiveLeakyBucketConfig};
+    use crate::io::config_loader::ConfigFolder;
 
     /// This test will always pass. You need to examine the outputs manually.
     ///

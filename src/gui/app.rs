@@ -12,9 +12,10 @@ use clap::ArgMatches;
 use crossbeam_channel::{unbounded as unbounded_channel, Receiver, Sender};
 use gtk::prelude::*;
 use log::{debug, error, info, warn};
-
 #[cfg(feature = "runtime_api")]
-use crate::io::runtime_api::{APICommand, APIListener};
+use shadowsocks_gtk_rs::runtime_api::{APICommand, APIListener};
+use shadowsocks_gtk_rs::util;
+
 use crate::{
     event::AppEvent,
     io::{
@@ -22,7 +23,6 @@ use crate::{
         config_loader::{ConfigFolder, ConfigProfile},
     },
     profile_manager::ProfileManager,
-    util,
 };
 
 use super::{backlog::BacklogWindow, tray::TrayItem};

@@ -7,7 +7,8 @@
 use std::{
     fmt::Display,
     fs,
-    io::{self, BufRead, BufReader},
+    io::{self, BufRead, BufReader, Write},
+    net::Shutdown,
     os::unix::net::{UnixListener, UnixStream},
     path::{Path, PathBuf},
     sync::{Arc, RwLock},
@@ -172,6 +173,7 @@ impl APIListener {
     }
 }
 
+/// Handles a single client connect request.
 fn handle_client(stream: UnixStream, cmds_tx: &Sender<APICommand>) -> Result<(), CmdError> {
     stream.set_read_timeout(Some(Duration::from_secs(3)))?;
     let cmd = {
@@ -182,6 +184,21 @@ fn handle_client(stream: UnixStream, cmds_tx: &Sender<APICommand>) -> Result<(),
     };
     debug!("Runtime API received a command: {}", cmd);
     cmds_tx.send(cmd).map_err(|_| CmdError::SendError)
+}
+
+pub fn send_cmd<P>(destination: P, cmd: APICommand) -> io::Result<()>
+where
+    P: AsRef<Path>,
+{
+    let mut socket = UnixStream::connect(destination)?;
+    socket.set_write_timeout(Some(Duration::from_secs(3)))?;
+    socket.write_all(
+        json5::to_string(&cmd)
+            .expect("serialising APICommand to json5 is infallible")
+            .as_bytes(),
+    )?;
+    socket.flush()?;
+    socket.shutdown(Shutdown::Both)
 }
 
 #[cfg(test)]
@@ -204,11 +221,7 @@ mod test {
             Quit,
         ];
         println!("{}", "-".repeat(50));
-        println!(
-            "Those are some of the commands you can issue:\n\
-            Note that you likely need the BSD variant of netcat to be able to connect \
-            to Unix sockets (see https://unix.stackexchange.com/a/26781/375550)"
-        );
+        println!("Those are some of the commands you can issue:");
         for cmd in egs.into_iter() {
             let cmd_str = json5::to_string(&cmd)
                 .expect("Manually created, shouldn't error")
@@ -216,8 +229,14 @@ mod test {
             println!("\techo {} | nc -U /path/to/shadowsocks-gtk-rs.sock", cmd_str);
         }
         println!(
+            "Note 0: you likely need the BSD variant of netcat to be able to connect \
+            to Unix sockets (see https://unix.stackexchange.com/a/26781/375550)\n\
+            Note 1: due to my technical limitations and my laziness (mainly the latter) \
+            the JSON5 command string must be a single line"
+        );
+        println!(
             "For the default socket path and how to manually set a different one, see\n\
-            \t cargo run --release -- --help"
+            \tcargo run --release -- --help"
         );
         println!("{}", "-".repeat(50));
     }

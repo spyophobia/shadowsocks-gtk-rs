@@ -2,6 +2,7 @@
 authors = [
   "spyophobia <76800505+spyophobia@users.noreply.github.com>",
 ]
+default-run = "shadowsocks-gtk-rs"
 description = "A desktop GUI frontend for shadowsocks-rust client implemented with gtk-rs."
 edition = "2021"
 name = "shadowsocks-gtk-rs"
@@ -26,3 +27,8 @@ nix = "0.23.0"
 serde = {version = "1.0.130", features = ["derive"]}
 serde_yaml = "0.8.21"
 simple_logger = "1.13.0"
+
+[[bin]]
+name = "ssgtkctl"
+path = "src/bin/runtime_controller/main.rs"
+required-features = ["runtime_api"]

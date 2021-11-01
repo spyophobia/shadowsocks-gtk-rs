@@ -8,7 +8,6 @@ mod event;
 mod gui;
 mod io;
 mod profile_manager;
-mod util;
 
 fn main() -> Result<(), String> {
     // init clap app

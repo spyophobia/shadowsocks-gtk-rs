@@ -4,8 +4,9 @@
 use std::{fmt::Display, fs, io, path::Path, time::Duration};
 
 use serde::{Deserialize, Serialize};
+use shadowsocks_gtk_rs::util::leaky_bucket::NaiveLeakyBucketConfig;
 
-use crate::{profile_manager::OnFailure, util::leaky_bucket::NaiveLeakyBucketConfig};
+use crate::profile_manager::OnFailure;
 
 #[derive(Debug)]
 pub enum AppStateError {

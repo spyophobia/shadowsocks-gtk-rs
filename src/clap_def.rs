@@ -23,11 +23,7 @@ pub fn build_app() -> App<'static, 'static> {
         .version(crate_version!())
         .author(crate_authors!())
         .about(crate_description!())
-        .settings(&[
-            AppSettings::AllowNegativeNumbers,
-            AppSettings::ArgRequiredElseHelp,
-            AppSettings::DisableHelpSubcommand,
-        ]);
+        .settings(&[AppSettings::AllowNegativeNumbers, AppSettings::DisableHelpSubcommand]);
 
     // args
     let arg_profiles_dir = {

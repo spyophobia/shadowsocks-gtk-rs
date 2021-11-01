@@ -37,12 +37,15 @@ Also note that symlinks are not currently supported in "group directories". I re
  - You can create an empty file named `.ss_ignore` in any "profile directory" or "group directory" to disable it and all its children.
 
 ## Can I bind a shortcut to \<some action>?
- - Yes! `runtime_api` is a default feature of this crate. It binds a listener to a Unix socket, to which you can send commands in [JSON5](https://json5.org/) to make the application do various things. All you need to do is write a command and bind a system shortcut to it.
- - To see some examples of commands you can send, you can run:
+ - Yes! `runtime_api` is a default feature of this crate, which provides a `ssgtkctl` binary. You can use it to make the application do various things. All you need to do is to bind a system shortcut to it. To see what it can do, simply run:
+```sh
+cargo run --release --bin ssgtkctl -- --help
+```
+ - Underneath the hood, the `runtime_api` feature starts a listener on a Unix socket, to which you can send commands in [JSON5](https://json5.org/). The `ssgtkctl` binary is merely a delegate to simplify the sending of said command.
+ - If you wish to interface with the Unix socket directly, you can take a look at some example commands by running:
 ```sh
 cargo test print_cmd_egs -- --nocapture
 ```
- - A separate delegate binary is also planned to further simplify the usage of the runtime API. Stay tuned!
 
 ## Why did I pick GTK instead of QT?
 GTK's rust binding has significantly better support than that of QT. I'm too lazy to support both so the choice is obvious.

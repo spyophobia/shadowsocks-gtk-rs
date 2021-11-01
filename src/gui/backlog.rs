@@ -13,8 +13,9 @@ use gtk::{
     prelude::*, ApplicationWindow, CheckButton, Frame, Grid, PolicyType, ScrolledWindow, TextBuffer, TextView, WrapMode,
 };
 use log::{error, trace};
+use shadowsocks_gtk_rs::util;
 
-use crate::{event::AppEvent, util};
+use crate::event::AppEvent;
 
 #[derive(Debug)]
 pub struct BacklogWindow {

@@ -14,9 +14,7 @@ use gtk::{
 };
 use log::{error, trace};
 
-use crate::util;
-
-use super::AppEvent;
+use crate::{event::AppEvent, util};
 
 #[derive(Debug)]
 pub struct BacklogWindow {

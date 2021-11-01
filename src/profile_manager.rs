@@ -18,7 +18,7 @@ use nix::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    gui::AppEvent,
+    event::AppEvent,
     io::{
         app_state::AppState,
         config_loader::{ConfigFolder, ConfigProfile},

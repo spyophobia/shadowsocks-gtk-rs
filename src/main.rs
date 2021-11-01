@@ -4,6 +4,7 @@ use log::debug;
 use crate::{gui::app, io::config_loader::ConfigFolder};
 
 mod clap_def;
+mod event;
 mod gui;
 mod io;
 mod profile_manager;

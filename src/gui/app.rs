@@ -16,6 +16,7 @@ use log::{debug, error, info, warn};
 #[cfg(feature = "runtime_api")]
 use crate::io::runtime_api::{APICommand, APIListener};
 use crate::{
+    event::AppEvent,
     io::{
         app_state::AppState,
         config_loader::{ConfigFolder, ConfigProfile},
@@ -24,7 +25,7 @@ use crate::{
     util,
 };
 
-use super::{backlog::BacklogWindow, tray::TrayItem, AppEvent};
+use super::{backlog::BacklogWindow, tray::TrayItem};
 
 #[derive(Debug)]
 pub enum AppStartError {

@@ -7,5 +7,3 @@ pub mod backlog;
 pub mod tray;
 
 // private members with re-export
-mod event;
-pub use event::*;

@@ -7,8 +7,7 @@ use gtk::{prelude::*, Menu, MenuItem, RadioMenuItem, SeparatorMenuItem};
 use libappindicator::{AppIndicator, AppIndicatorStatus};
 use log::{debug, error, warn};
 
-use super::AppEvent;
-use crate::{io::config_loader::ConfigFolder, util};
+use crate::{event::AppEvent, io::config_loader::ConfigFolder, util};
 
 const TRAY_TITLE: &str = "Shadowsocks GTK";
 

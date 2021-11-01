@@ -4,6 +4,7 @@
     "hexpand",
     "hscrollbar",
     "libgtk",
+    "netcat",
     "nocapture",
     "nonblocking",
     "SIGINT",

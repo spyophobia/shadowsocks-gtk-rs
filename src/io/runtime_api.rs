@@ -183,3 +183,44 @@ fn handle_client(stream: UnixStream, cmds_tx: &Sender<APICommand>) -> Result<(),
     debug!("Runtime API received a command: {}", cmd);
     cmds_tx.send(cmd).map_err(|_| CmdError::SendError)
 }
+
+#[cfg(test)]
+mod test {
+    use super::APICommand;
+
+    /// This test is intended to show a list of example commands
+    /// and will always pass.
+    ///
+    /// `cargo test print_cmd_egs -- --nocapture`
+    #[test]
+    fn print_cmd_egs() {
+        use APICommand::*;
+        let egs = vec![
+            BacklogShow,
+            BacklogHide,
+            Restart,
+            SwitchProfile("Example Profile".into()),
+            Stop,
+            Quit,
+        ];
+        println!("{}", "-".repeat(50));
+        println!(
+            "Those are some of the commands you can issue:\n\
+            Note that you likely need the BSD variant of netcat to be able \
+            to connect to Unix sockets.\n\
+            See https://unix.stackexchange.com/a/26781/375550"
+        );
+        for cmd in egs.into_iter() {
+            let cmd_str = json5::to_string(&cmd)
+                .expect("Manually created, shouldn't error")
+                .replace("\"", "\\\""); // escape quotes for shell
+
+            println!("\techo {} | nc -U /path/to/shadowsocks-gtk-rs.sock", cmd_str);
+        }
+        println!(
+            "For the default socket path and how to manually set a different one, see\n\
+            \t cargo run --release -- --help"
+        );
+        println!("{}", "-".repeat(50));
+    }
+}

@@ -5,7 +5,12 @@ authors = [
 default-run = "shadowsocks-gtk-rs"
 description = "A desktop GUI frontend for shadowsocks-rust client implemented with gtk-rs."
 edition = "2021"
+homepage = "https://github.com/spyophobia/shadowsocks-gtk-rs"
+keywords = ["shadowsocks", "gui", "linux"]
+license-file = "LICENSE"
 name = "shadowsocks-gtk-rs"
+readme = "README.md"
+repository = "https://github.com/spyophobia/shadowsocks-gtk-rs"
 version = "0.1.0"
 
 [features]

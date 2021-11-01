@@ -4,6 +4,7 @@
 use std::{
     fmt::Display,
     path::{Path, PathBuf},
+    process,
     sync::{Arc, RwLock},
     time::Duration,
 };
@@ -324,6 +325,7 @@ pub fn run(clap_matches: &ArgMatches, config_folder: ConfigFolder) -> Result<(),
         if let Err(_) = events_tx.send(AppEvent::Quit) {
             error!("Trying to send Quit event for soft shutdown, but all receivers have hung up.");
             error!("Performing hard shutdown; the app state may not be saved.");
+            process::exit(0);
         }
     })?;
 

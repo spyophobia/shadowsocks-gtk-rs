@@ -5,19 +5,36 @@ use std::{fmt, rc::Rc, sync::RwLock};
 use crossbeam_channel::Sender;
 use gtk::{prelude::*, Menu, MenuItem, RadioMenuItem, SeparatorMenuItem};
 use libappindicator::{AppIndicator, AppIndicatorStatus};
-use log::{debug, error};
+use log::{debug, error, warn};
 
 use super::AppEvent;
 use crate::{io::config_loader::ConfigFolder, util};
 
 const TRAY_TITLE: &str = "Shadowsocks GTK";
 
-#[cfg(target_os = "linux")]
+#[derive(Debug, Clone)]
+enum ConfigMenuItem {
+    Profile(RadioMenuItem, Rc<RwLock<bool>>),
+    Group(MenuItem),
+}
+
 pub struct TrayItem {
     ai: AppIndicator,
     menu: Menu,
-    /// The `RadioMenuItem` with its listen enable flag.
+    /// The `RadioMenuItem` for the stop button.
+    ///
+    /// We store the menu item because we need to set it to active
+    /// when an external event caused `sslocal` to stop.
+    ///
+    /// We have a listen enable flag because we want to be able to
+    /// prevent it from emitting an extraneous event when we
+    /// programmatically set it to active.
     manual_stop_item: (RadioMenuItem, Rc<RwLock<bool>>),
+    /// The `RadioMenuItem`s for the list of profiles.
+    ///
+    /// The reason we store these is the same as the reason for
+    /// storing `manual_stop_item`.
+    profile_items: Vec<(RadioMenuItem, Rc<RwLock<bool>>)>,
 }
 
 impl fmt::Debug for TrayItem {
@@ -42,17 +59,17 @@ impl TrayItem {
         // create stop button up top because `TrayItem` has a mandatory field
         let manual_stop_item = {
             let events_tx = events_tx.clone();
-            let listen_enable_0 = Rc::new(RwLock::new(true));
-            let listen_enable_1 = Rc::clone(&listen_enable_0);
+            let enable_flag = Rc::new(RwLock::new(true));
+            let enable_flag_mv = Rc::clone(&enable_flag);
             let menu_item = RadioMenuItem::with_label("Stop sslocal");
             menu_item.connect_toggled(move |item| {
-                if item.is_active() && *util::rwlock_read(&listen_enable_0) {
+                if item.is_active() && *util::rwlock_read(&enable_flag_mv) {
                     if let Err(_) = events_tx.send(AppEvent::ManualStop) {
                         error!("Trying to send ManualStop event, but all receivers have hung up.");
                     }
                 }
             });
-            (menu_item, listen_enable_1)
+            (menu_item, enable_flag)
         };
 
         // create tray with icon
@@ -64,18 +81,14 @@ impl TrayItem {
             },
             menu: Menu::new(),
             manual_stop_item,
+            profile_items: vec![], // will be populated when adding dynamic profiles
         };
         tray.ai.set_status(AppIndicatorStatus::Active);
 
         // add dynamic profiles
         tray.add_label("Profiles");
         tray.add_separator();
-        for item in menu_tree_from_root_config_folder(config_folder, &tray.manual_stop_item.0, events_tx.clone()) {
-            match item {
-                ConfigMenuItem::Profile(item) => tray.menu.append(&item),
-                ConfigMenuItem::Group(item) => tray.menu.append(&item),
-            }
-        }
+        tray.load_profiles(config_folder, events_tx.clone());
         tray.add_separator();
 
         // add stop button (previously created)
@@ -109,6 +122,30 @@ impl TrayItem {
         *util::rwlock_write(&self.manual_stop_item.1) = true; // set listen enable
     }
 
+    /// Notify the tray about sslocal switching to a another,
+    /// without emitting a `SwitchProfile` event.
+    pub fn notify_profile_switch<S>(&mut self, name: S)
+    where
+        S: AsRef<str>,
+    {
+        let profile_item = self.profile_items.iter().find(|(item, _)| {
+            let item_name = item
+                .label()
+                .expect("A profile's RadioMenuItem has no label")
+                .to_string();
+            name.as_ref() == item_name
+        });
+        match profile_item {
+            Some((item, listen_enable)) => {
+                debug!("Setting tray to active state with profile \"{}\"", name.as_ref());
+                *util::rwlock_write(listen_enable) = false; // set listen disable
+                item.set_active(true);
+                *util::rwlock_write(listen_enable) = true; // set listen enable
+            }
+            None => warn!("Cannot find RadioMenuItem for profile named \"{}\"", name.as_ref()),
+        }
+    }
+
     /// Append a separator to the tray item's menu.
     fn add_separator(&mut self) {
         let sep = SeparatorMenuItem::new();
@@ -130,6 +167,50 @@ impl TrayItem {
         item.connect_activate(move |_| action());
         self.menu.append(&item);
     }
+    /// Load the full list of `ConfigProfiles` from the root `ConfigFolder`,
+    /// automatically generate the nested menu structure using `menu_tree_from_config_folder_recurse`,
+    /// and append them all to the tray item's menu as `RadioMenuItem`s.
+    ///
+    /// We unroll the first layer of the recursive call because we want to
+    /// remove the topmost layer of nesting.
+    ///
+    /// Also replaces `Self::profile_items` with the new list of `RadioMenuItem`s.
+    fn load_profiles(&mut self, config_folder: &ConfigFolder, events_tx: Sender<AppEvent>) {
+        let radio_group = &self.manual_stop_item.0; // the ref used to group `RadioMenuItem`s
+        let mut radio_menu_item_list = vec![];
+        match config_folder {
+            ConfigFolder::Group(g) => {
+                for cf in g.content.iter() {
+                    let child = menu_tree_from_config_folder_recurse(
+                        cf,
+                        radio_group,
+                        events_tx.clone(),
+                        &mut radio_menu_item_list,
+                    );
+                    match child {
+                        ConfigMenuItem::Profile(item, listen_enable) => {
+                            self.menu.append(&item); // build menu
+                            radio_menu_item_list.push((item, listen_enable)); // save to list
+                        }
+                        ConfigMenuItem::Group(item) => self.menu.append(&item), // build menu
+                    }
+                }
+            }
+            profile => {
+                let profile_menu_item =
+                    menu_tree_from_config_folder_recurse(profile, radio_group, events_tx, &mut radio_menu_item_list);
+                match profile_menu_item {
+                    ConfigMenuItem::Profile(item, listen_enable) => {
+                        self.menu.append(&item); // build menu
+                        radio_menu_item_list.push((item, listen_enable)); //  save to list
+                    }
+                    ConfigMenuItem::Group(_) => unreachable!("profile_menu_item should be a profile"),
+                }
+            }
+        }
+        // reset `self.profile_items` with temp `Vec`
+        self.profile_items = radio_menu_item_list;
+    }
 
     /// Compose the menu to make ready for display.
     fn finalise(&mut self) {
@@ -138,40 +219,17 @@ impl TrayItem {
     }
 }
 
-#[derive(Debug, Clone)]
-enum ConfigMenuItem {
-    Profile(RadioMenuItem),
-    Group(MenuItem),
-}
-
-/// Wrapper around `menu_tree_from_config_folder_recurse` for the root `ConfigFolder`.
-///
-/// This is a special case because we want to remove the topmost layer of nesting,
-/// and doing it this way is by far the easiest.
-fn menu_tree_from_root_config_folder<G>(
-    config_folder: &ConfigFolder,
-    group: &G,
-    events_tx: Sender<AppEvent>,
-) -> Vec<ConfigMenuItem>
-where
-    G: IsA<RadioMenuItem>,
-{
-    match config_folder {
-        ConfigFolder::Group(g) => g
-            .content
-            .iter()
-            .map(|cf| menu_tree_from_config_folder_recurse(cf, group, events_tx.clone()))
-            .collect(),
-        profile => vec![menu_tree_from_config_folder_recurse(profile, group, events_tx)],
-    }
-}
-
 /// Recursively constructs a nested menu structure from a `ConfigFolder`,
 /// attaching the corresponding profile-switch action to each leaf `ConfigProfile`.
+///
+/// If the passed in `config_folder` is a group, this function also moves
+/// all the `RadioMenuItems` recursively generated by its descendants
+/// into the `Vec` `radio_menu_item_list`.
 fn menu_tree_from_config_folder_recurse<G>(
     config_folder: &ConfigFolder,
     group: &G,
     events_tx: Sender<AppEvent>,
+    radio_menu_item_list: &mut Vec<(RadioMenuItem, Rc<RwLock<bool>>)>,
 ) -> ConfigMenuItem
 where
     G: IsA<RadioMenuItem>,
@@ -179,23 +237,28 @@ where
     match config_folder {
         ConfigFolder::Profile(p) => {
             let profile = p.clone();
+            let enable_flag = Rc::new(RwLock::new(true));
+            let enable_flag_mv = Rc::clone(&enable_flag);
             let menu_item = RadioMenuItem::with_label_from_widget(group, Some(&p.display_name));
             menu_item.set_sensitive(true);
             menu_item.connect_toggled(move |item| {
-                if item.is_active() {
+                if item.is_active() && *util::rwlock_read(&enable_flag_mv) {
                     if let Err(_) = events_tx.send(AppEvent::SwitchProfile(profile.clone())) {
                         error!("Trying to send SwitchProfile event, but all receivers have hung up.");
                     }
                 }
             });
-            ConfigMenuItem::Profile(menu_item)
+            ConfigMenuItem::Profile(menu_item, enable_flag)
         }
         ConfigFolder::Group(g) => {
             let submenu = Menu::new();
             for cf in g.content.iter() {
-                match menu_tree_from_config_folder_recurse(cf, group, events_tx.clone()) {
-                    ConfigMenuItem::Profile(item) => submenu.append(&item),
-                    ConfigMenuItem::Group(item) => submenu.append(&item),
+                match menu_tree_from_config_folder_recurse(cf, group, events_tx.clone(), radio_menu_item_list) {
+                    ConfigMenuItem::Profile(item, listen_enable) => {
+                        submenu.append(&item); // build menu
+                        radio_menu_item_list.push((item, listen_enable)); // save to list
+                    }
+                    ConfigMenuItem::Group(item) => submenu.append(&item), // build menu
                 }
             }
 

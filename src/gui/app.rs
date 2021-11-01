@@ -122,7 +122,14 @@ impl GTKApp {
                     }
                 },
             );
-            TrayItem::build_and_show(&config_folder, &icon_name, theme_dir.as_deref(), events_tx.clone())
+            let mut tray =
+                TrayItem::build_and_show(&config_folder, &icon_name, theme_dir.as_deref(), events_tx.clone());
+            // set tray state to match profile manager state
+            match util::rwlock_read(&pm_arc).current_profile() {
+                Some(p) => tray.notify_profile_switch(p.display_name),
+                None => tray.notify_sslocal_stop(),
+            }
+            tray
         };
 
         Ok(Self {
@@ -262,10 +269,16 @@ impl GTKApp {
                 BacklogHide => self.hide_backlog(),
                 Restart => self.restart(),
                 SwitchProfile(name) => match self.config_folder.lookup(&name).cloned() {
-                    Some(p) => self.switch_profile(p),
+                    Some(p) => {
+                        self.switch_profile(p);
+                        self.tray.notify_profile_switch(&name);
+                    }
                     None => error!("Cannot find a profile named \"{}\"; did nothing", name),
                 },
-                Stop => self.stop(),
+                Stop => {
+                    self.stop();
+                    self.tray.notify_sslocal_stop();
+                }
                 Quit => self.quit(),
             }
         }

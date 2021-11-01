@@ -3,6 +3,7 @@
     "devel",
     "hexpand",
     "hscrollbar",
+    "libayatana",
     "libgtk",
     "netcat",
     "nocapture",

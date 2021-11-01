@@ -8,5 +8,6 @@ cargo run --release -- \
   -v \
   --profiles-dir "./example-config-profiles" \
   --app-state "./local-run/app-state.yaml" \
+  --api-socket "./local-run/shadowsocks-gtk-rs.sock" \
   --icon-theme-dir "./res/logo" \
   $1 # allows easy adjustment of verbosity level

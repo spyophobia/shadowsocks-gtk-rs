@@ -221,7 +221,7 @@ mod test {
             Quit,
         ];
         println!("{}", "-".repeat(50));
-        println!("Those are some of the commands you can issue:");
+        println!("Those are some of the commands you can issue (CASE SENSITIVE):");
         for cmd in egs.into_iter() {
             let cmd_str = json5::to_string(&cmd)
                 .expect("Manually created, shouldn't error")

@@ -49,7 +49,7 @@ pub fn build_app() -> App<'static, 'static> {
                 .required(true)
                 .index(1)
                 .takes_value(true)
-                .help("The display name of the profile to switch to"),
+                .help("The display name of the profile to switch to (CASE SENSITIVE)"),
         )
         .about("Switch to a new profile by starting a new sslocal instance");
     let cmd_stop = SubCommand::with_name("stop").about("Stop the currently running sslocal instance");

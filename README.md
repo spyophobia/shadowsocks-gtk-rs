@@ -4,7 +4,9 @@ A desktop GUI frontend for shadowsocks-rust client implemented with gtk-rs.
 
 ## Work in Progress
 
-Might be incomplete and/or buggy. Use with caution.
+Be advised that this application may be incomplete and/or buggy. But do rest assured that it won't destroy your OS or something.
+
+Your input is very welcomed! If you have any suggestions or have found any issue (no matter how small or unimportant) with the code or the documentation, please feel free to raise an issue. Or better yet, submit a PR if you can!
 
 ## OS Support
 
@@ -12,9 +14,7 @@ For the moment: **LINUX ONLY**. But it should work on pretty much all distros.
 
 Compatibility with other OSes isn't priority, because there already exists plenty of alternative solutions for Windows and MacOS.
 
-# To Compile
-
-### First install dependencies
+# Dependencies
 
 You will need to first install: `rust`, `shadowsocks-rust`, `GTK3`, and `libappindicator`.
  - For `rust`, see [here](https://www.rust-lang.org/tools/install).
@@ -29,9 +29,15 @@ The latest versions are **highly recommended**.
 | Debian `apt`  | `libgtk-3-dev` | `libayatana-appindicator3-1` |
 | Redhat `dnf`  | `gtk3-devel`   | `libappindicator-gtk3`       |
 
-If you are using any recent version of Gnome as your desktop environment, you also need [gnome-shell-extension-appindicator](https://extensions.gnome.org/extension/615) for the very useful tray icon.
+If you are using any recent version of Gnome as your desktop environment, you also need [gnome-shell-extension-appindicator](https://extensions.gnome.org/extension/615) for the tray icon to show up.
 
-### Then clone source and run
+# Read the documentation!
+
+If you are using this application for the first time, you probably want to read the [configuration guide](res/QnA.md#how-to-customise-configuration) first.
+
+# Then either...
+
+### Clone source and run without installing
 
 ```sh
 cd /my/code/directory
@@ -45,7 +51,12 @@ cargo run --release -- --help
 ./run-local.sh
 ```
 
-If you are using this application for the first time, you probably want to read the [configuration guide](res/QnA.md#how-to-customise-configuration) first.
+### Alternatively, install from [crates.io](https://crates.io/crates/shadowsocks-gtk-rs)
+
+```sh
+cargo install shadowsocks-gtk-rs
+shadowsocks-gtk-rs --help
+```
 
 # Useful Reading
 

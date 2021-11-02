@@ -103,6 +103,7 @@ pub fn build_app() -> App<'static, 'static> {
 
     // note to packager: you probably want to copy `res/logo/shadowsocks-gtk-rs.png`
     // to `/usr/share/pixmap/` and not use this parameter
+    // see `/res/QnA.md`
     let arg_icon_theme_dir = Arg::with_name("icon-theme-dir")
         .long("icon-theme-dir")
         .takes_value(true)

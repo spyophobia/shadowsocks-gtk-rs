@@ -18,7 +18,7 @@ Compatibility with other OSes isn't priority, because there already exists plent
 
 You will need to first install: `rust`, `shadowsocks-rust`, `GTK3`, and `libappindicator`.
  - For `rust`, see [here](https://www.rust-lang.org/tools/install).
- - For `shadowsocks-rust`, see [here](https://www.rust-lang.org/tools/install). Strictly speaking, this is only required at runtime.
+ - For `shadowsocks-rust`, see [here](https://github.com/shadowsocks/shadowsocks-rust#build--install). Strictly speaking, this is only required at runtime.
  - For `GTK3` and `libappindicator`, use your distro's package manager.
 
 The latest versions are **highly recommended**.

@@ -63,6 +63,8 @@ pub fn build_app() -> App<'static, 'static> {
             .validator(move |arg| {
                 if &arg == default_val {
                     // if default, then mkdir and overwrite with default if parse error
+                    // this could happen if the state file is corrupted,
+                    // or if an updated version modified the state file format
                     fs::create_dir_all(&default_config_dir).map_err(|err| err.to_string())?;
                     match AppState::from_file(&arg) {
                         Ok(_state) => Ok(()),

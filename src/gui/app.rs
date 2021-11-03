@@ -272,15 +272,17 @@ impl GTKApp {
                 ManualStop => self.stop(),
                 Quit => self.quit(),
 
-                OkStop => {
+                OkStop { prompt: _ } => {
                     // this event could be received because an old instance is stopped
                     // and a new one is started, therefore we first check for active instance
                     if !util::rwlock_read(&self.profile_manager).is_active() {
                         self.tray.notify_sslocal_stop();
+                        // TODO: prompt
                     }
                 }
-                ErrorStop => {
+                ErrorStop { prompt: _ } => {
                     self.tray.notify_sslocal_stop();
+                    // TODO: prompt
                 }
             }
         }

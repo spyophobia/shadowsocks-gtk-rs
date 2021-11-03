@@ -188,20 +188,19 @@ impl ActiveSSInstance {
 }
 
 /// What to do when a `sslocal` instance fails with a non-0 exit code.
+///
+/// Scenarios in which a restart will not be attempted:
+/// - Limit reached
+/// - `sslocal` instance terminated by a signal
+/// - Various errors which make it impossible for monitoring to continue
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub enum OnFailure {
-    /// Set `ProfileManager` to inactive state on failure.
-    ///
-    /// TODO: describe `prompt` (event)
-    Halt { prompt: bool },
-    /// Attempt to restart `sslocal`, up to the limit specified by `limit`,
-    /// when an `ErrorStop` event will be emitted.
-    ///
-    /// Scenarios in which a restart will not be attempted:
-    /// - Limit reached
-    /// - `sslocal` instance terminated by a signal
-    /// - Various errors which make it impossible for monitoring to continue
-    Restart { limit: NaiveLeakyBucketConfig },
+pub struct OnFailure {
+    /// Attempt to restart `sslocal` up to this limit before
+    /// setting `ProfileManager` to inactive state.
+    pub restart_limit: NaiveLeakyBucketConfig,
+    /// Should the user be notified via a `MessageDialog` when
+    /// the restart limit is exceeded?
+    pub prompt: bool,
 }
 
 /// A daemon that manages profile-switching and restarts.
@@ -337,119 +336,110 @@ impl ProfileManager {
         // create thread
         let handle = thread::Builder::new()
             .name("ProfileManager failure monitor daemon".into())
-            .spawn(move || match on_fail {
-                OnFailure::Halt { prompt } => {
-                    if prompt {
-                        unimplemented!("Prompt user")
-                    }
+            .spawn(move || {
+                // profile stays the same across restarts, therefore outside of loop
+                let profile_name = profile.display_name.clone();
+                let mut exit_listener = listener; // is set to new listener in every iteration
+                let mut restart_counter: NaiveLeakyBucket = on_fail.restart_limit.into();
+                let prompt = on_fail.prompt;
+                // restart loop can exit for a variety of reasons; see code
+                loop {
+                    let instance_name = match &*util::rwlock_read(&instance) {
+                        Some(inst) => inst.to_string(),
+                        None => {
+                            debug!("ProfileManager has been set to inactive; auto-restart stopped");
+                            if let Err(_) = events_tx.send(AppEvent::OkStop { prompt }) {
+                                error!("Trying to send OkStop event, but all receivers have hung up.");
+                            }
+                            break;
+                        }
+                    };
 
-                    // leave ProfileManager inactive
-                    drop(util::rwlock_write(&instance).take());
-                }
-                OnFailure::Restart { limit } => {
-                    // profile stays the same across restarts, therefore outside of loop
-                    let profile_name = profile.display_name.clone();
-                    let mut exit_listener = listener; // is set to new listener in every iteration
-                    let mut restart_counter: NaiveLeakyBucket = limit.into();
-                    // restart loop can exit for a variety of reasons; see code
-                    loop {
-                        let instance_name = match &*util::rwlock_read(&instance) {
-                            Some(inst) => inst.to_string(),
-                            None => {
-                                debug!("ProfileManager has been set to inactive; auto-restart stopped");
-                                if let Err(_) = events_tx.send(AppEvent::OkStop) {
-                                    error!("Trying to send OkStop event, but all receivers have hung up.");
-                                }
-                                break;
-                            }
-                        };
-
-                        // wait for `sslocal` instance exit signal
-                        match exit_listener.recv() {
-                            Ok(status) if status.success() => {
-                                // most likely because `ActiveInstance` gets dropped
-                                // causing `sslocal` to exit gracefully,
-                                // or if the user calls `sslocal --version` or something
-                                debug!(
-                                    "Instance {} has exited successfully; auto-restart stopped",
-                                    instance_name
-                                );
-                                if let Err(_) = events_tx.send(AppEvent::OkStop) {
-                                    error!("Trying to send OkStop event, but all receivers have hung up.");
-                                }
-                                break;
-                            }
-                            Err(err) => {
-                                // we no longer know the status of `sslocal`, so fail fast
-                                error!(
-                                    "The exit alert daemon for instance {} has hung up: {}; auto-restart stopped",
-                                    instance_name, err
-                                );
-                                if let Err(_) = events_tx.send(AppEvent::ErrorStop) {
-                                    error!("Trying to send ErrorStop event, but all receivers have hung up.");
-                                }
-                                break;
-                            }
-                            Ok(bad_status) => {
-                                // do restart
-                                warn!("Instance {} has failed; restarting", instance_name);
-                                warn!("Exit status: {}", bad_status);
-                            }
-                        };
-
-                        // Check if restart counter has overflowed
-                        if let Err(err) = restart_counter.push() {
-                            error!(
-                                "sslocal exits excessively with profile \"{}\"; auto-restart stopped",
-                                profile_name
+                    // wait for `sslocal` instance exit signal
+                    match exit_listener.recv() {
+                        Ok(status) if status.success() => {
+                            // most likely because `ActiveInstance` gets dropped
+                            // causing `sslocal` to exit gracefully,
+                            // or if the user calls `sslocal --version` or something
+                            debug!(
+                                "Instance {} has exited successfully; auto-restart stopped",
+                                instance_name
                             );
-                            error!("{}", err);
-                            if let Err(_) = events_tx.send(AppEvent::ErrorStop) {
+                            if let Err(_) = events_tx.send(AppEvent::OkStop { prompt }) {
+                                error!("Trying to send OkStop event, but all receivers have hung up.");
+                            }
+                            break;
+                        }
+                        Err(err) => {
+                            // we no longer know the status of `sslocal`, so fail fast
+                            error!(
+                                "The exit alert daemon for instance {} has hung up: {}; auto-restart stopped",
+                                instance_name, err
+                            );
+                            if let Err(_) = events_tx.send(AppEvent::ErrorStop { prompt }) {
                                 error!("Trying to send ErrorStop event, but all receivers have hung up.");
                             }
                             break;
                         }
-
-                        // Restart
-                        /// Temporary helper builder function to simplify error handling.
-                        fn start_pipe_alert(
-                            profile: ConfigProfile,
-                            stdout_tx: Sender<String>,
-                            stderr_tx: Sender<String>,
-                            exit_listener: &mut Receiver<ExitStatus>,
-                        ) -> io::Result<ActiveSSInstance> {
-                            let mut instance = ActiveSSInstance::new(profile)?;
-                            instance.pipe_stdout(stdout_tx)?;
-                            instance.pipe_stderr(stderr_tx)?;
-                            *exit_listener = instance.alert_on_exit()?;
-                            Ok(instance)
+                        Ok(bad_status) => {
+                            // do restart
+                            warn!("Instance {} has failed; restarting", instance_name);
+                            warn!("Exit status: {}", bad_status);
                         }
-
-                        let new_instance = match start_pipe_alert(
-                            profile.clone(),
-                            stdout_tx.clone(),
-                            stderr_tx.clone(),
-                            &mut exit_listener,
-                        ) {
-                            Ok(p) => p,
-                            Err(err) => {
-                                error!(
-                                    "Failed to restart with profile \"{}\": {}. Failure monitor daemon stopping",
-                                    profile_name, err
-                                );
-                                if let Err(_) = events_tx.send(AppEvent::ErrorStop) {
-                                    error!("Trying to send ErrorStop event, but all receivers have hung up.");
-                                }
-                                break;
-                            }
-                        };
-
-                        // Set new active instance
-                        *util::rwlock_write(&instance) = Some(new_instance);
                     }
-                    // loop exit means we should leave ProfileManager inactive
-                    drop(util::rwlock_write(&instance).take());
+
+                    // Check if restart counter has overflowed
+                    if let Err(err) = restart_counter.push() {
+                        error!(
+                            "sslocal exits excessively with profile \"{}\"; auto-restart stopped",
+                            profile_name
+                        );
+                        error!("{}", err);
+                        if let Err(_) = events_tx.send(AppEvent::ErrorStop { prompt }) {
+                            error!("Trying to send ErrorStop event, but all receivers have hung up.");
+                        }
+                        break;
+                    }
+
+                    // Restart
+                    /// Temporary helper builder function to simplify error handling.
+                    fn start_pipe_alert(
+                        profile: ConfigProfile,
+                        stdout_tx: Sender<String>,
+                        stderr_tx: Sender<String>,
+                        exit_listener: &mut Receiver<ExitStatus>,
+                    ) -> io::Result<ActiveSSInstance> {
+                        let mut instance = ActiveSSInstance::new(profile)?;
+                        instance.pipe_stdout(stdout_tx)?;
+                        instance.pipe_stderr(stderr_tx)?;
+                        *exit_listener = instance.alert_on_exit()?;
+                        Ok(instance)
+                    }
+
+                    let new_instance = match start_pipe_alert(
+                        profile.clone(),
+                        stdout_tx.clone(),
+                        stderr_tx.clone(),
+                        &mut exit_listener,
+                    ) {
+                        Ok(p) => p,
+                        Err(err) => {
+                            error!(
+                                "Failed to restart with profile \"{}\": {}. Failure monitor daemon stopping",
+                                profile_name, err
+                            );
+                            if let Err(_) = events_tx.send(AppEvent::ErrorStop { prompt }) {
+                                error!("Trying to send ErrorStop event, but all receivers have hung up.");
+                            }
+                            break;
+                        }
+                    };
+
+                    // Set new active instance
+                    *util::rwlock_write(&instance) = Some(new_instance);
                 }
+                // loop exit means we should leave ProfileManager inactive
+                drop(util::rwlock_write(&instance).take());
             })?;
         self.daemon_handles.push(handle);
 
@@ -502,8 +492,9 @@ mod test {
         debug!("Loaded {} profiles.", profile_list.len());
 
         // setup ProfileManager
-        let on_fail = OnFailure::Restart {
-            limit: NaiveLeakyBucketConfig::new(3, Duration::from_secs(10)),
+        let on_fail = OnFailure {
+            restart_limit: NaiveLeakyBucketConfig::new(3, Duration::from_secs(10)),
+            prompt: false,
         };
         let (events_tx, _) = unbounded_channel();
         let mut mgr = ProfileManager::new(on_fail, events_tx);

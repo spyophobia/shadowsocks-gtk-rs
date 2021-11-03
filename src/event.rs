@@ -12,6 +12,6 @@ pub enum AppEvent {
     Quit,
 
     // from core
-    OkStop,
-    ErrorStop,
+    OkStop { prompt: bool },
+    ErrorStop { prompt: bool },
 }

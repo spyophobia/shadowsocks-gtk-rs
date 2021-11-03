@@ -47,8 +47,9 @@ impl Default for AppState {
     fn default() -> Self {
         Self {
             most_recent_profile: String::new(),
-            on_fail: OnFailure::Restart {
-                limit: NaiveLeakyBucketConfig::new(5, Duration::from_secs(30)),
+            on_fail: OnFailure {
+                restart_limit: NaiveLeakyBucketConfig::new(5, Duration::from_secs(30)),
+                prompt: true,
             },
         }
     }

@@ -348,7 +348,10 @@ impl ProfileManager {
                         Some(inst) => inst.to_string(),
                         None => {
                             debug!("ProfileManager has been set to inactive; auto-restart stopped");
-                            if let Err(_) = events_tx.send(AppEvent::OkStop { prompt }) {
+                            if let Err(_) = events_tx.send(AppEvent::OkStop {
+                                instance_name: None,
+                                prompt,
+                            }) {
                                 error!("Trying to send OkStop event, but all receivers have hung up.");
                             }
                             break;
@@ -365,7 +368,10 @@ impl ProfileManager {
                                 "Instance {} has exited successfully; auto-restart stopped",
                                 instance_name
                             );
-                            if let Err(_) = events_tx.send(AppEvent::OkStop { prompt }) {
+                            if let Err(_) = events_tx.send(AppEvent::OkStop {
+                                instance_name: Some(instance_name),
+                                prompt,
+                            }) {
                                 error!("Trying to send OkStop event, but all receivers have hung up.");
                             }
                             break;
@@ -376,7 +382,11 @@ impl ProfileManager {
                                 "The exit alert daemon for instance {} has hung up: {}; auto-restart stopped",
                                 instance_name, err
                             );
-                            if let Err(_) = events_tx.send(AppEvent::ErrorStop { prompt }) {
+                            if let Err(_) = events_tx.send(AppEvent::ErrorStop {
+                                instance_name: Some(instance_name),
+                                err: err.to_string(),
+                                prompt,
+                            }) {
                                 error!("Trying to send ErrorStop event, but all receivers have hung up.");
                             }
                             break;
@@ -395,7 +405,11 @@ impl ProfileManager {
                             profile_name
                         );
                         error!("{}", err);
-                        if let Err(_) = events_tx.send(AppEvent::ErrorStop { prompt }) {
+                        if let Err(_) = events_tx.send(AppEvent::ErrorStop {
+                            instance_name: Some(instance_name),
+                            err: err.to_string(),
+                            prompt,
+                        }) {
                             error!("Trying to send ErrorStop event, but all receivers have hung up.");
                         }
                         break;
@@ -428,7 +442,11 @@ impl ProfileManager {
                                 "Failed to restart with profile \"{}\": {}. Failure monitor daemon stopping",
                                 profile_name, err
                             );
-                            if let Err(_) = events_tx.send(AppEvent::ErrorStop { prompt }) {
+                            if let Err(_) = events_tx.send(AppEvent::ErrorStop {
+                                instance_name: Some(instance_name),
+                                err: err.to_string(),
+                                prompt,
+                            }) {
                                 error!("Trying to send ErrorStop event, but all receivers have hung up.");
                             }
                             break;

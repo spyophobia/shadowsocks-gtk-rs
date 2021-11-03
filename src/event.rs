@@ -12,6 +12,13 @@ pub enum AppEvent {
     Quit,
 
     // from core
-    OkStop { prompt: bool },
-    ErrorStop { prompt: bool },
+    OkStop {
+        instance_name: Option<String>,
+        prompt: bool,
+    },
+    ErrorStop {
+        instance_name: Option<String>,
+        err: String,
+        prompt: bool,
+    },
 }

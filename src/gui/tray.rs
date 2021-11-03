@@ -94,6 +94,8 @@ impl TrayItem {
         // add stop button (previously created)
         tray.menu.append(&tray.manual_stop_item.0);
 
+        // TODO: Add option to enable/disable error prompt
+
         // add other static menu entries
         let backlog_tx = events_tx.clone();
         tray.add_menu_item("Show sslocal Output", move || {

@@ -5,13 +5,13 @@ use std::{
     fmt::Display,
     path::{Path, PathBuf},
     process,
-    sync::{Arc, RwLock},
+    sync::{Arc, Mutex, RwLock},
     time::Duration,
 };
 
 use clap::ArgMatches;
 use crossbeam_channel::{unbounded as unbounded_channel, Receiver, Sender};
-use gtk::prelude::*;
+use gtk::{prelude::*, MessageType};
 use log::{debug, error, info, warn};
 #[cfg(feature = "runtime_api")]
 use shadowsocks_gtk_rs::runtime_api::{APICommand, APIListener};
@@ -19,6 +19,7 @@ use shadowsocks_gtk_rs::util;
 
 use crate::{
     event::AppEvent,
+    gui::popup,
     io::{
         app_state::AppState,
         config_loader::{ConfigFolder, ConfigLoadError, ConfigProfile},
@@ -289,17 +290,40 @@ impl GTKApp {
                 ManualStop => self.stop(),
                 Quit => self.quit(),
 
-                OkStop { prompt: _ } => {
+                OkStop { instance_name, prompt } => {
                     // this event could be received because an old instance is stopped
                     // and a new one is started, therefore we first check for active instance
                     if !util::rwlock_read(&self.profile_manager).is_active() {
                         self.tray.notify_sslocal_stop();
-                        // TODO: prompt
+                        if prompt {
+                            popup::blocking_prompt(
+                                MessageType::Warning,
+                                "Auto-restart Stopped",
+                                format!(
+                                    "An instance has exited normally: {}",
+                                    instance_name.unwrap_or("None".into())
+                                ),
+                            );
+                        }
                     }
                 }
-                ErrorStop { prompt: _ } => {
+                ErrorStop {
+                    instance_name,
+                    err,
+                    prompt,
+                } => {
                     self.tray.notify_sslocal_stop();
-                    // TODO: prompt
+                    if prompt {
+                        popup::blocking_prompt(
+                            MessageType::Error,
+                            "Auto-restart Stopped",
+                            format!(
+                                "An instance has errored: {}\n{}",
+                                instance_name.unwrap_or("None".into()),
+                                err
+                            ),
+                        );
+                    }
                 }
             }
         }
@@ -338,14 +362,26 @@ pub fn run(clap_matches: &ArgMatches) -> Result<(), AppStartError> {
     let mut app = GTKApp::new(clap_matches)?;
 
     // catch signals for soft shutdown
+    let shutdown_trigger_count = Arc::new(Mutex::new(0usize));
     let events_tx = app.events_tx.clone();
     ctrlc::set_handler(move || {
-        info!("Signal received, sending Quit event");
-        if let Err(_) = events_tx.send(AppEvent::Quit) {
-            error!("Trying to send Quit event for soft shutdown, but all receivers have hung up.");
-            error!("Performing hard shutdown; the app state may not be saved.");
-            process::exit(0);
+        let mut count = util::mutex_lock(&shutdown_trigger_count);
+        match *count {
+            0 => {
+                info!("Signal received, sending Quit event");
+                if let Err(_) = events_tx.send(AppEvent::Quit) {
+                    error!("Trying to send Quit event for soft shutdown, but all receivers have hung up");
+                    error!("Performing hard shutdown; the app state may be unsaved");
+                    process::exit(0);
+                }
+            }
+            1 => warn!("Send one more signal for hard shutdown"),
+            _ => {
+                warn!("Performing hard shutdown; the app state may be unsaved");
+                process::exit(0);
+            }
         }
+        *count += 1;
     })?;
 
     // starts looping event listeners

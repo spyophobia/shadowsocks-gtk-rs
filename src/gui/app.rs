@@ -21,7 +21,7 @@ use crate::{
     event::AppEvent,
     io::{
         app_state::AppState,
-        config_loader::{ConfigFolder, ConfigProfile},
+        config_loader::{ConfigFolder, ConfigLoadError, ConfigProfile},
     },
     profile_manager::ProfileManager,
 };
@@ -30,24 +30,36 @@ use super::{backlog::BacklogWindow, tray::TrayItem};
 
 #[derive(Debug)]
 pub enum AppStartError {
+    ConfigLoadError(ConfigLoadError),
+    CtrlCError(ctrlc::Error),
     GLibBoolError(glib::BoolError),
     GLibError(glib::Error),
     IOError(std::io::Error),
-    CtrlCError(ctrlc::Error),
 }
 
 impl Display for AppStartError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use AppStartError::*;
         match self {
+            ConfigLoadError(e) => write!(f, "AppStartError-ConfigLoadError: {}", e),
+            CtrlCError(e) => write!(f, "AppStartError-CtrlCError: {}", e),
             GLibBoolError(e) => write!(f, "AppStartError-GLibBoolError: {}", e),
             GLibError(e) => write!(f, "AppStartError-GLibError: {}", e),
             IOError(e) => write!(f, "AppStartError-IOError: {}", e),
-            CtrlCError(e) => write!(f, "AppStartError-CtrlCError: {}", e),
         }
     }
 }
 
+impl From<ConfigLoadError> for AppStartError {
+    fn from(err: ConfigLoadError) -> Self {
+        Self::ConfigLoadError(err)
+    }
+}
+impl From<ctrlc::Error> for AppStartError {
+    fn from(err: ctrlc::Error) -> Self {
+        Self::CtrlCError(err)
+    }
+}
 impl From<glib::BoolError> for AppStartError {
     fn from(err: glib::BoolError) -> Self {
         Self::GLibBoolError(err)
@@ -61,11 +73,6 @@ impl From<glib::Error> for AppStartError {
 impl From<std::io::Error> for AppStartError {
     fn from(err: std::io::Error) -> Self {
         Self::IOError(err)
-    }
-}
-impl From<ctrlc::Error> for AppStartError {
-    fn from(err: ctrlc::Error) -> Self {
-        Self::CtrlCError(err)
     }
 }
 
@@ -95,9 +102,19 @@ struct GTKApp {
 
 impl GTKApp {
     /// Construct the application.
-    fn new(clap_matches: &ArgMatches, config_folder: ConfigFolder) -> Result<Self, AppStartError> {
+    fn new(clap_matches: &ArgMatches) -> Result<Self, AppStartError> {
         // init GTK
         gtk::init()?;
+
+        // load profiles
+        let config_folder = {
+            let dir = clap_matches.value_of("profiles-dir").unwrap(); // clap sets default
+            ConfigFolder::from_path_recurse(dir)?
+        };
+        debug!(
+            "Successfully loaded {} profiles in total",
+            config_folder.profile_count()
+        );
 
         // resume core
         let app_state_path = clap_matches.value_of("app-state-path").unwrap().into(); // clap sets default
@@ -316,9 +333,9 @@ impl GTKApp {
 }
 
 /// Initialise all components and start the GTK main loop.
-pub fn run(clap_matches: &ArgMatches, config_folder: ConfigFolder) -> Result<(), AppStartError> {
+pub fn run(clap_matches: &ArgMatches) -> Result<(), AppStartError> {
     // init app
-    let mut app = GTKApp::new(clap_matches, config_folder)?;
+    let mut app = GTKApp::new(clap_matches)?;
 
     // catch signals for soft shutdown
     let events_tx = app.events_tx.clone();

@@ -1,7 +1,5 @@
 use clap::ArgMatches;
-use log::debug;
-
-use crate::{gui::app, io::config_loader::ConfigFolder};
+use gui::app;
 
 mod clap_def;
 mod event;
@@ -16,18 +14,8 @@ fn main() -> Result<(), String> {
     // init logger
     logger_init(&clap_matches);
 
-    // load profiles
-    let config_folder = {
-        let dir = clap_matches.value_of("profiles-dir").unwrap(); // clap sets default
-        ConfigFolder::from_path_recurse(dir).map_err(|err| err.to_string())?
-    };
-    debug!(
-        "Successfully loaded {} profiles in total",
-        config_folder.profile_count()
-    );
-
     // start app
-    app::run(&clap_matches, config_folder.clone()).map_err(|err| err.to_string())
+    app::run(&clap_matches).map_err(|err| err.to_string())
 }
 
 fn logger_init(matches: &ArgMatches) {

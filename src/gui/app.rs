@@ -12,7 +12,7 @@ use std::{
 use clap::ArgMatches;
 use crossbeam_channel::{unbounded as unbounded_channel, Receiver, Sender};
 use gtk::{prelude::*, MessageType};
-use log::{debug, error, info, warn};
+use log::{debug, error, info, trace, warn};
 #[cfg(feature = "runtime_api")]
 use shadowsocks_gtk_rs::runtime_api::{APICommand, APIListener};
 use shadowsocks_gtk_rs::util;
@@ -94,11 +94,12 @@ struct GTKApp {
     #[cfg(feature = "runtime_api")]
     api_cmds_rx: Receiver<APICommand>,
 
-    // permanent GUI components
+    // GUI components
     tray: TrayItem,
-
-    // optionally opened windows
     backlog_window: Option<BacklogWindow>,
+
+    // misc
+    prompt_enable: bool,
 }
 
 impl GTKApp {
@@ -117,11 +118,13 @@ impl GTKApp {
             config_folder.profile_count()
         );
 
-        // resume core
+        // load app state
         let app_state_path = clap_matches.value_of("app-state-path").unwrap().into(); // clap sets default
+        let previous_state = AppState::from_file(&app_state_path).unwrap(); // Ok guaranteed by clap validator
+
+        // resume core
         let (events_tx, events_rx) = unbounded_channel();
         let pm_arc = {
-            let previous_state = AppState::from_file(&app_state_path).unwrap(); // Ok guaranteed by clap validator
             let pm = ProfileManager::resume_from(&previous_state, &config_folder, events_tx.clone());
             Arc::new(RwLock::new(pm))
         };
@@ -149,8 +152,13 @@ impl GTKApp {
                     }
                 },
             );
-            let mut tray =
-                TrayItem::build_and_show(&config_folder, &icon_name, theme_dir.as_deref(), events_tx.clone());
+            let mut tray = TrayItem::build_and_show(
+                &icon_name,
+                theme_dir.as_deref(),
+                events_tx.clone(),
+                &config_folder,
+                previous_state.on_fail.prompt,
+            );
             // set tray state to match profile manager state
             match util::rwlock_read(&pm_arc).current_profile() {
                 Some(p) => tray.notify_profile_switch(p.display_name),
@@ -174,8 +182,9 @@ impl GTKApp {
             api_cmds_rx,
 
             tray,
-
             backlog_window: None,
+
+            prompt_enable: previous_state.on_fail.prompt,
         })
     }
 
@@ -283,19 +292,21 @@ impl GTKApp {
         use AppEvent::*;
         // using `while let` rather than `for` due to borrow checker issue
         while let Some(event) = self.events_rx.try_iter().next() {
+            trace!("Received an AppEvent: {:?}", event);
             match event {
                 BacklogShow => self.show_backlog(),
                 BacklogHide => self.drop_backlog(),
                 SwitchProfile(p) => self.switch_profile(p),
                 ManualStop => self.stop(),
+                PromptEnable(enabled) => self.prompt_enable = enabled,
                 Quit => self.quit(),
 
-                OkStop { instance_name, prompt } => {
+                OkStop { instance_name } => {
                     // this event could be received because an old instance is stopped
                     // and a new one is started, therefore we first check for active instance
                     if !util::rwlock_read(&self.profile_manager).is_active() {
                         self.tray.notify_sslocal_stop();
-                        if prompt {
+                        if self.prompt_enable {
                             popup::blocking_prompt(
                                 MessageType::Warning,
                                 "Auto-restart Stopped",
@@ -307,13 +318,9 @@ impl GTKApp {
                         }
                     }
                 }
-                ErrorStop {
-                    instance_name,
-                    err,
-                    prompt,
-                } => {
+                ErrorStop { instance_name, err } => {
                     self.tray.notify_sslocal_stop();
-                    if prompt {
+                    if self.prompt_enable {
                         popup::blocking_prompt(
                             MessageType::Error,
                             "Auto-restart Stopped",

@@ -9,16 +9,10 @@ pub enum AppEvent {
     BacklogHide,
     SwitchProfile(ConfigProfile),
     ManualStop,
+    PromptEnable(bool),
     Quit,
 
     // from core
-    OkStop {
-        instance_name: Option<String>,
-        prompt: bool,
-    },
-    ErrorStop {
-        instance_name: Option<String>,
-        err: String,
-        prompt: bool,
-    },
+    OkStop { instance_name: Option<String> },
+    ErrorStop { instance_name: Option<String>, err: String },
 }

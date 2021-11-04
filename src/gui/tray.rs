@@ -3,7 +3,7 @@
 use std::{fmt, rc::Rc, sync::RwLock};
 
 use crossbeam_channel::Sender;
-use gtk::{prelude::*, Menu, MenuItem, RadioMenuItem, SeparatorMenuItem};
+use gtk::{prelude::*, CheckMenuItem, Menu, MenuItem, RadioMenuItem, SeparatorMenuItem};
 use libappindicator::{AppIndicator, AppIndicatorStatus};
 use log::{debug, error, warn};
 use shadowsocks_gtk_rs::util;
@@ -51,10 +51,11 @@ impl TrayItem {
     ///
     /// Should only be called once.
     pub fn build_and_show(
-        config_folder: &ConfigFolder,
         icon_name: &str,
         icon_theme_dir: Option<&str>,
         events_tx: Sender<AppEvent>,
+        config_folder: &ConfigFolder,
+        prompt_enable: bool,
     ) -> Self {
         // create stop button up top because `TrayItem` has a mandatory field
         let manual_stop_item = {
@@ -94,7 +95,20 @@ impl TrayItem {
         // add stop button (previously created)
         tray.menu.append(&tray.manual_stop_item.0);
 
-        // TODO: Add option to enable/disable error prompt
+        // add prompt toggle
+        let toggle_prompt_item = {
+            let events_tx = events_tx.clone();
+            let toggle = CheckMenuItem::with_label("Prompt on Error");
+            toggle.set_active(prompt_enable);
+            toggle.connect_toggled(move |item| {
+                let ev = AppEvent::PromptEnable(item.is_active());
+                if let Err(_) = events_tx.send(ev) {
+                    error!("Trying to send PromptEnable event, but all receivers have hung up.");
+                }
+            });
+            toggle
+        };
+        tray.menu.append(&toggle_prompt_item);
 
         // add other static menu entries
         let backlog_tx = events_tx.clone();

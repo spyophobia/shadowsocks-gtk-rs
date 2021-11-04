@@ -187,6 +187,7 @@ impl ActiveSSInstance {
     }
 }
 
+// TODO: remove and use the raw `restart_limit`
 /// What to do when a `sslocal` instance fails with a non-0 exit code.
 ///
 /// Scenarios in which a restart will not be attempted:
@@ -341,17 +342,13 @@ impl ProfileManager {
                 let profile_name = profile.display_name.clone();
                 let mut exit_listener = listener; // is set to new listener in every iteration
                 let mut restart_counter: NaiveLeakyBucket = on_fail.restart_limit.into();
-                let prompt = on_fail.prompt;
                 // restart loop can exit for a variety of reasons; see code
                 loop {
                     let instance_name = match &*util::rwlock_read(&instance) {
                         Some(inst) => inst.to_string(),
                         None => {
                             debug!("ProfileManager has been set to inactive; auto-restart stopped");
-                            if let Err(_) = events_tx.send(AppEvent::OkStop {
-                                instance_name: None,
-                                prompt,
-                            }) {
+                            if let Err(_) = events_tx.send(AppEvent::OkStop { instance_name: None }) {
                                 error!("Trying to send OkStop event, but all receivers have hung up.");
                             }
                             break;
@@ -370,7 +367,6 @@ impl ProfileManager {
                             );
                             if let Err(_) = events_tx.send(AppEvent::OkStop {
                                 instance_name: Some(instance_name),
-                                prompt,
                             }) {
                                 error!("Trying to send OkStop event, but all receivers have hung up.");
                             }
@@ -385,7 +381,6 @@ impl ProfileManager {
                             if let Err(_) = events_tx.send(AppEvent::ErrorStop {
                                 instance_name: Some(instance_name),
                                 err: err.to_string(),
-                                prompt,
                             }) {
                                 error!("Trying to send ErrorStop event, but all receivers have hung up.");
                             }
@@ -408,7 +403,6 @@ impl ProfileManager {
                         if let Err(_) = events_tx.send(AppEvent::ErrorStop {
                             instance_name: Some(instance_name),
                             err: err.to_string(),
-                            prompt,
                         }) {
                             error!("Trying to send ErrorStop event, but all receivers have hung up.");
                         }
@@ -445,7 +439,6 @@ impl ProfileManager {
                             if let Err(_) = events_tx.send(AppEvent::ErrorStop {
                                 instance_name: Some(instance_name),
                                 err: err.to_string(),
-                                prompt,
                             }) {
                                 error!("Trying to send ErrorStop event, but all receivers have hung up.");
                             }
@@ -464,6 +457,8 @@ impl ProfileManager {
         Ok(())
     }
 
+    // TODO: move `snapshot` to `app.rs`
+    // TODO: export the actual `prompt_enable`
     /// Export the current state of `Self`.
     pub fn snapshot(&self) -> AppState {
         let profile_name = self.current_profile().map_or("".into(), |p| p.display_name);

@@ -101,7 +101,7 @@ impl TrayItem {
             let toggle = CheckMenuItem::with_label("Prompt on Error");
             toggle.set_active(prompt_enable);
             toggle.connect_toggled(move |item| {
-                let ev = AppEvent::PromptEnable(item.is_active());
+                let ev = AppEvent::PromptOnError(item.is_active());
                 if let Err(_) = events_tx.send(ev) {
                     error!("Trying to send PromptEnable event, but all receivers have hung up.");
                 }

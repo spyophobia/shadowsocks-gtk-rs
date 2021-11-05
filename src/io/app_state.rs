@@ -39,7 +39,7 @@ pub struct AppState {
     /// `""` indicates none.
     pub most_recent_profile: String,
     pub restart_limit: NaiveLeakyBucketConfig,
-    pub prompt_enable: bool,
+    pub prompt_on_error: bool,
 }
 
 impl Default for AppState {
@@ -47,7 +47,7 @@ impl Default for AppState {
         Self {
             most_recent_profile: String::new(),
             restart_limit: NaiveLeakyBucketConfig::new(5, Duration::from_secs(30)),
-            prompt_enable: true,
+            prompt_on_error: true,
         }
     }
 }

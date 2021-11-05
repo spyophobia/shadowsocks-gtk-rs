@@ -16,5 +16,14 @@
     "vadjustment",
     "vscrollbar",
     "xalign"
-  ]
+  ],
+  "todo-tree.general.tags": [
+    "BUG",
+    "FIXME",
+    "HACK",
+    "IDEA",
+    "TEMP",
+    "TODO",
+  ],
+  "todo-tree.regex.regex": "((//|#|<!--|;|/\\*|^|^[ \\t]*(-|\\d+.))\\s*($TAGS)|^\\s*- \\[ \\]|(todo|unimplemented)!\\(.*\\))",
 }

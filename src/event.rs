@@ -9,7 +9,7 @@ pub enum AppEvent {
     BacklogHide,
     SwitchProfile(ConfigProfile),
     ManualStop,
-    PromptEnable(bool),
+    PromptOnError(bool),
     Quit,
 
     // from core

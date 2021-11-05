@@ -99,7 +99,7 @@ struct GTKApp {
     backlog_window: Option<BacklogWindow>,
 
     // misc
-    prompt_enable: bool,
+    prompt_on_error: bool,
 }
 
 impl GTKApp {
@@ -157,7 +157,7 @@ impl GTKApp {
                 theme_dir.as_deref(),
                 events_tx.clone(),
                 &config_folder,
-                previous_state.prompt_enable,
+                previous_state.prompt_on_error,
             );
             // set tray state to match profile manager state
             match util::rwlock_read(&pm_arc).current_profile() {
@@ -184,7 +184,7 @@ impl GTKApp {
             tray,
             backlog_window: None,
 
-            prompt_enable: previous_state.prompt_enable,
+            prompt_on_error: previous_state.prompt_on_error,
         })
     }
 
@@ -195,7 +195,7 @@ impl GTKApp {
         AppState {
             most_recent_profile,
             restart_limit: pm.restart_limit,
-            prompt_enable: self.prompt_enable,
+            prompt_on_error: self.prompt_on_error,
         }
     }
 
@@ -308,29 +308,20 @@ impl GTKApp {
                 BacklogHide => self.drop_backlog(),
                 SwitchProfile(p) => self.switch_profile(p),
                 ManualStop => self.stop(),
-                PromptEnable(enabled) => self.prompt_enable = enabled,
+                PromptOnError(enabled) => self.prompt_on_error = enabled,
                 Quit => self.quit(),
 
-                OkStop { instance_name } => {
+                OkStop { instance_name: _ } => {
                     // this event could be received because an old instance is stopped
                     // and a new one is started, therefore we first check for active instance
                     if !util::rwlock_read(&self.profile_manager).is_active() {
                         self.tray.notify_sslocal_stop();
-                        if self.prompt_enable {
-                            popup::blocking_prompt(
-                                MessageType::Warning,
-                                "Auto-restart Stopped",
-                                format!(
-                                    "An instance has exited normally: {}",
-                                    instance_name.unwrap_or("None".into())
-                                ),
-                            );
-                        }
+                        // IDEA: DBus notification?
                     }
                 }
                 ErrorStop { instance_name, err } => {
                     self.tray.notify_sslocal_stop();
-                    if self.prompt_enable {
+                    if self.prompt_on_error {
                         popup::blocking_prompt(
                             MessageType::Error,
                             "Auto-restart Stopped",

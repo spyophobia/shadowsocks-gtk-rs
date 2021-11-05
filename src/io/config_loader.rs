@@ -2,7 +2,7 @@
 
 use std::{
     ffi::OsString,
-    fmt::Display,
+    fmt::{self, Display},
     fs::read_to_string,
     io,
     net::{IpAddr, Ipv6Addr},
@@ -22,7 +22,7 @@ const LOAD_IGNORE_FILE_NAME: &str = ".ss_ignore";
 /// this directory is a connection profile.
 const PROFILE_DEF_FILE_NAME: &str = "profile.yaml";
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 struct ConfigProfileSerde {
     display_name: Option<String>,
     pwd: Option<PathBuf>,
@@ -35,6 +35,22 @@ struct ConfigProfileSerde {
 
     config_path: Option<PathBuf>,
     extra_args: Option<Vec<String>>,
+}
+
+impl fmt::Debug for ConfigProfileSerde {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ConfigProfileSerde")
+            .field("display_name", &self.display_name)
+            .field("pwd", &self.pwd)
+            .field("bin_path", &self.bin_path)
+            .field("local_addr", &self.local_addr)
+            .field("server_addr", &self.server_addr)
+            .field("password", &"--hidden--")
+            .field("encrypt_method", &self.encrypt_method)
+            .field("config_path", &self.config_path)
+            .field("extra_args", &self.extra_args)
+            .finish()
+    }
 }
 
 impl TryInto<ConfigProfile> for ConfigProfileSerde {
@@ -71,7 +87,7 @@ impl TryInto<ConfigProfile> for ConfigProfileSerde {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ConfigProfile {
     // mandatory fields
     pub display_name: String,
@@ -87,6 +103,22 @@ pub struct ConfigProfile {
     // advanced config fields
     config_path: Option<PathBuf>,
     extra_args: Option<Vec<String>>,
+}
+
+impl fmt::Debug for ConfigProfile {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ConfigProfile")
+            .field("display_name", &self.display_name)
+            .field("pwd", &self.pwd)
+            .field("bin_path", &self.bin_path)
+            .field("local_addr", &self.local_addr)
+            .field("server_addr", &self.server_addr)
+            .field("password", &"--hidden--")
+            .field("encrypt_method", &self.encrypt_method)
+            .field("config_path", &self.config_path)
+            .field("extra_args", &self.extra_args)
+            .finish()
+    }
 }
 
 impl ConfigProfile {

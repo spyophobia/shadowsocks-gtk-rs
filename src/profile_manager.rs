@@ -15,7 +15,6 @@ use nix::{
     sys::signal::{self, Signal},
     unistd::Pid,
 };
-use serde::{Deserialize, Serialize};
 use shadowsocks_gtk_rs::util::{
     self,
     leaky_bucket::{NaiveLeakyBucket, NaiveLeakyBucketConfig},
@@ -187,27 +186,18 @@ impl ActiveSSInstance {
     }
 }
 
-// TODO: remove and use the raw `restart_limit`
-/// What to do when a `sslocal` instance fails with a non-0 exit code.
-///
-/// Scenarios in which a restart will not be attempted:
-/// - Limit reached
-/// - `sslocal` instance terminated by a signal
-/// - Various errors which make it impossible for monitoring to continue
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct OnFailure {
-    /// Attempt to restart `sslocal` up to this limit before
-    /// setting `ProfileManager` to inactive state.
-    pub restart_limit: NaiveLeakyBucketConfig,
-    /// Should the user be notified via a `MessageDialog` when
-    /// the restart limit is exceeded?
-    pub prompt: bool,
-}
-
 /// A daemon that manages profile-switching and restarts.
 #[derive(Debug)]
 pub struct ProfileManager {
-    on_fail: OnFailure,
+    /// Attempt to restart `sslocal` up to this limit before
+    /// setting `ProfileManager` to inactive state.
+    /// What to do when a `sslocal` instance fails with a non-0 exit code.
+    ///
+    /// Scenarios in which a restart will not be attempted:
+    /// - Limit reached
+    /// - `sslocal` instance terminated by a signal
+    /// - Various errors which make it impossible for monitoring to continue
+    pub restart_limit: NaiveLeakyBucketConfig,
     events_tx: Sender<AppEvent>,
     /// Inner value of `None` means `Self` is inactive.
     active_instance: Arc<RwLock<Option<ActiveSSInstance>>>,
@@ -249,11 +239,11 @@ impl Drop for ProfileManager {
 }
 
 impl ProfileManager {
-    pub fn new(on_fail: OnFailure, events_tx: Sender<AppEvent>) -> Self {
+    pub fn new(restart_limit: NaiveLeakyBucketConfig, events_tx: Sender<AppEvent>) -> Self {
         let (stdout_tx, stdout_rx) = unbounded_channel();
         let (stderr_tx, stderr_rx) = unbounded_channel();
         Self {
-            on_fail,
+            restart_limit,
             events_tx,
             active_instance: RwLock::new(None).into(),
             stdout_tx,
@@ -267,7 +257,7 @@ impl ProfileManager {
 
     /// Resume from a previously saved state.
     pub fn resume_from(state: &AppState, profiles: &ConfigFolder, events_tx: Sender<AppEvent>) -> Self {
-        let mut pm = Self::new(state.on_fail, events_tx);
+        let mut pm = Self::new(state.restart_limit, events_tx);
         match state.most_recent_profile.as_str() {
             "" => debug!("Most recent profile is none; will not attempt to resume"),
             name => match profiles.lookup(name) {
@@ -325,7 +315,7 @@ impl ProfileManager {
     /// to fail, when it will attempt to perform the action specified by `Self::on_fail`.
     pub fn set_on_fail(&mut self, listener: Receiver<ExitStatus>) -> io::Result<()> {
         // variables that need to be moved into thread
-        let on_fail = self.on_fail;
+        let restart_limit = self.restart_limit;
         let events_tx = self.events_tx.clone();
         let instance = Arc::clone(&self.active_instance);
         let profile = self
@@ -341,7 +331,7 @@ impl ProfileManager {
                 // profile stays the same across restarts, therefore outside of loop
                 let profile_name = profile.display_name.clone();
                 let mut exit_listener = listener; // is set to new listener in every iteration
-                let mut restart_counter: NaiveLeakyBucket = on_fail.restart_limit.into();
+                let mut restart_counter: NaiveLeakyBucket = restart_limit.into();
                 // restart loop can exit for a variety of reasons; see code
                 loop {
                     let instance_name = match &*util::rwlock_read(&instance) {
@@ -457,17 +447,6 @@ impl ProfileManager {
         Ok(())
     }
 
-    // TODO: move `snapshot` to `app.rs`
-    // TODO: export the actual `prompt_enable`
-    /// Export the current state of `Self`.
-    pub fn snapshot(&self) -> AppState {
-        let profile_name = self.current_profile().map_or("".into(), |p| p.display_name);
-        AppState {
-            most_recent_profile: profile_name,
-            on_fail: self.on_fail,
-        }
-    }
-
     /// Stop the `sslocal` instance if active.
     ///
     /// Returns `Err(())` if already inactive.
@@ -505,12 +484,9 @@ mod test {
         debug!("Loaded {} profiles.", profile_list.len());
 
         // setup ProfileManager
-        let on_fail = OnFailure {
-            restart_limit: NaiveLeakyBucketConfig::new(3, Duration::from_secs(10)),
-            prompt: false,
-        };
+        let restart_limit = NaiveLeakyBucketConfig::new(3, Duration::from_secs(10));
         let (events_tx, _) = unbounded_channel();
-        let mut mgr = ProfileManager::new(on_fail, events_tx);
+        let mut mgr = ProfileManager::new(restart_limit, events_tx);
 
         // pipe output
         let stdout = mgr.stdout_rx.clone();

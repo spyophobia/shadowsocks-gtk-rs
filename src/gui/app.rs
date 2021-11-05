@@ -157,7 +157,7 @@ impl GTKApp {
                 theme_dir.as_deref(),
                 events_tx.clone(),
                 &config_folder,
-                previous_state.on_fail.prompt,
+                previous_state.prompt_enable,
             );
             // set tray state to match profile manager state
             match util::rwlock_read(&pm_arc).current_profile() {
@@ -184,8 +184,19 @@ impl GTKApp {
             tray,
             backlog_window: None,
 
-            prompt_enable: previous_state.on_fail.prompt,
+            prompt_enable: previous_state.prompt_enable,
         })
+    }
+
+    /// Export the current application state.
+    pub fn snapshot(&self) -> AppState {
+        let pm = util::rwlock_read(&self.profile_manager);
+        let most_recent_profile = pm.current_profile().map_or("".into(), |p| p.display_name);
+        AppState {
+            most_recent_profile,
+            restart_limit: pm.restart_limit,
+            prompt_enable: self.prompt_enable,
+        }
     }
 
     /// Show the backlog window, if not already shown.
@@ -271,14 +282,13 @@ impl GTKApp {
         info!("Quit");
 
         // cleanup
-        let mut pm = util::rwlock_write(&self.profile_manager);
         // save app state
-        match pm.snapshot().write_to_file(&self.app_state_path) {
+        match self.snapshot().write_to_file(&self.app_state_path) {
             Ok(_) => info!("App state saved to {:?}", self.app_state_path),
             Err(err) => error!("Failed to save app state: {}", err),
         };
         // stop any running `sslocal` process
-        let _ = pm.try_stop();
+        let _ = util::rwlock_write(&self.profile_manager).try_stop();
 
         // drop all optional windows
         debug!("Closing all optional windows");

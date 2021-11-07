@@ -36,5 +36,5 @@ simple_logger = "1.13.0"
 
 [[bin]]
 name = "ssgtkctl"
-path = "src/bin/runtime_controller/main.rs"
+path = "src/bin/ssgtkctl/main.rs"
 required-features = ["runtime_api"]

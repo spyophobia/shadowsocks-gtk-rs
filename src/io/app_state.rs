@@ -1,7 +1,7 @@
 //! This module defines the application state, read from and saved to disk
 //! when the application in starting and stopping respectively.
 
-use std::{fmt::Display, fs, io, path::Path, time::Duration};
+use std::{fmt, fs, io, path::Path, time::Duration};
 
 use serde::{Deserialize, Serialize};
 use shadowsocks_gtk_rs::util::leaky_bucket::NaiveLeakyBucketConfig;
@@ -12,7 +12,7 @@ pub enum AppStateError {
     IOError(io::Error),
 }
 
-impl Display for AppStateError {
+impl fmt::Display for AppStateError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use AppStateError::*;
         match self {

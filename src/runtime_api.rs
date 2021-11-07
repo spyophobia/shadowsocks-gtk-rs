@@ -5,8 +5,7 @@
 //! bind a system shortcut to a particular action.
 
 use std::{
-    fmt::Display,
-    fs,
+    fmt, fs,
     io::{self, BufRead, BufReader, Write},
     net::Shutdown,
     os::unix::net::{UnixListener, UnixStream},
@@ -36,7 +35,7 @@ pub enum APICommand {
     Quit,
 }
 
-impl Display for APICommand {
+impl fmt::Display for APICommand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use APICommand::*;
         let msg = match self {
@@ -59,7 +58,7 @@ enum CmdError {
     SendError,
 }
 
-impl Display for CmdError {
+impl fmt::Display for CmdError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             CmdError::IOError(e) => write!(f, "CmdError-IOError: {}", e),

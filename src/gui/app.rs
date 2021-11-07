@@ -2,7 +2,7 @@
 //! and holds all the GUI components.
 
 use std::{
-    fmt::Display,
+    fmt,
     path::{Path, PathBuf},
     process,
     sync::{Arc, Mutex, RwLock},
@@ -39,7 +39,7 @@ pub enum AppStartError {
     IOError(std::io::Error),
 }
 
-impl Display for AppStartError {
+impl fmt::Display for AppStartError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use AppStartError::*;
         match self {

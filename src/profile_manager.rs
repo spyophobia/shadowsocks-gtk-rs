@@ -1,7 +1,7 @@
 //! This module contains code that handles profile switching and automatic restarting.
 
 use std::{
-    fmt::Display,
+    fmt,
     io::{self, BufRead, BufReader, Read},
     process::{Child, ExitStatus, Stdio},
     sync::{Arc, Mutex, RwLock},
@@ -45,7 +45,7 @@ struct ActiveSSInstance {
     daemon_handles: Vec<JoinHandle<()>>,
 }
 
-impl Display for ActiveSSInstance {
+impl fmt::Display for ActiveSSInstance {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "(PID: {}, Profile: {})", self.sslocal_pid, self.profile.display_name)
     }

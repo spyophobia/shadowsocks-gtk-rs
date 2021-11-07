@@ -2,7 +2,7 @@
 
 use std::{
     ffi::OsString,
-    fmt::{self, Display},
+    fmt,
     fs::read_to_string,
     io,
     net::{IpAddr, Ipv6Addr},
@@ -199,7 +199,7 @@ pub enum ConfigLoadError {
     IOError(io::Error),
 }
 
-impl Display for ConfigLoadError {
+impl fmt::Display for ConfigLoadError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use ConfigLoadError::*;
 

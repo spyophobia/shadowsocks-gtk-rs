@@ -2,7 +2,7 @@
 //! rate limiter algorithm.
 
 use std::{
-    fmt::Display,
+    fmt,
     time::{Duration, Instant},
 };
 
@@ -15,7 +15,7 @@ pub struct LeakyBucketOverflowed {
     history: Vec<Instant>,
 }
 
-impl Display for LeakyBucketOverflowed {
+impl fmt::Display for LeakyBucketOverflowed {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,

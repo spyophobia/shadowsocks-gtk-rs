@@ -30,7 +30,7 @@ jobs:
     - name: Setup & cache dependencies
       uses: awalsh128/cache-apt-pkgs-action@v1
       with:
-        packages: libappindicator3-dev libatk1.0-dev libgtk-3-dev libharfbuzz-dev libpango1.0-dev
+        packages: libappindicator3-dev libatk1.0-dev libgraphite2-dev libgtk-3-dev libharfbuzz-dev libpango1.0-dev
         refresh: true
     - name: Build release
       run: cargo build --release --verbose

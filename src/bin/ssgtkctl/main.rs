@@ -20,6 +20,15 @@ fn main() -> io::Result<()> {
         match clap_matches.subcommand() {
             ("backlog-show", _) => BacklogShow,
             ("backlog-hide", _) => BacklogHide,
+            ("set-notify", Some(m)) => {
+                let method = m
+                    .value_of("notify-method")
+                    .unwrap() // required by clap
+                    .parse()
+                    .unwrap(); // clap sets possible values
+                SetNotify(method)
+            }
+
             ("restart", _) => Restart,
             ("switch-profile", Some(m)) => {
                 let name = m.value_of("profile-name").unwrap(); // required by clap

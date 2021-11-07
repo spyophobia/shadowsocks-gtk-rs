@@ -16,7 +16,7 @@ use log::{debug, error, info, trace, warn};
 
 #[cfg(feature = "runtime_api")]
 use shadowsocks_gtk_rs::runtime_api::{APICommand, APIListener};
-use shadowsocks_gtk_rs::util;
+use shadowsocks_gtk_rs::{notify_method::NotifyMethod, util};
 
 use crate::{
     event::AppEvent,
@@ -28,7 +28,7 @@ use crate::{
     profile_manager::ProfileManager,
 };
 
-use super::{backlog::BacklogWindow, notification::NotifyMethod, tray::TrayItem};
+use super::{backlog::BacklogWindow, tray::TrayItem};
 
 #[derive(Debug)]
 pub enum AppStartError {
@@ -244,6 +244,11 @@ impl GTKApp {
             }
         }
     }
+    /// Set the notification method.
+    fn set_notify_method(&mut self, method: NotifyMethod) {
+        info!("Setting notify method to {}", method);
+        self.notify_method = method;
+    }
     /// Restart the `sslocal` instance with the current profile.
     fn restart(&mut self) {
         let current_profile = util::rwlock_read(&self.profile_manager).current_profile();
@@ -309,10 +314,7 @@ impl GTKApp {
                 BacklogHide => self.drop_backlog(),
                 SwitchProfile(p) => self.switch_profile(p),
                 ManualStop => self.stop(),
-                SetNotify(method) => {
-                    info!("Setting notify method to {}", method);
-                    self.notify_method = method;
-                }
+                SetNotify(method) => self.set_notify_method(method),
                 Quit => self.quit(),
 
                 OkStop { instance_name } => {
@@ -346,6 +348,11 @@ impl GTKApp {
             match cmd {
                 BacklogShow => self.show_backlog(),
                 BacklogHide => self.close_backlog(),
+                SetNotify(method) => {
+                    self.set_notify_method(method);
+                    self.tray.notify_notify_method_change(method);
+                }
+
                 Restart => self.restart(),
                 SwitchProfile(name) => match self.config_folder.lookup(&name).cloned() {
                     Some(p) => {

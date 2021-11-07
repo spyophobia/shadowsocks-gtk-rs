@@ -1,21 +1,7 @@
-use enum_iterator::IntoEnumIterator;
 use gtk::{prelude::*, ButtonsType, MessageDialog, MessageType};
 use log::{debug, error, info, warn};
 use notify_rust::{error as notify_error, Hint, Notification, NotificationHandle, Timeout, Urgency};
-use serde::{Deserialize, Serialize};
-
-/// How to send the user a notification?
-#[derive(Debug, strum::Display, Clone, Copy, PartialEq, Eq, IntoEnumIterator, Serialize, Deserialize)]
-pub enum NotifyMethod {
-    /// Do nothing.
-    Disable,
-    /// Log in stdout.
-    Log,
-    /// Prompt using dialog.
-    Prompt,
-    /// Send system notification, appearing as a toast.
-    Toast,
-}
+use shadowsocks_gtk_rs::notify_method::NotifyMethod;
 
 /// Unifies logging levels from `log` crate's macros,
 /// `gtk::MessageType` (for prompt) and `notify_rust::Urgency` (for toast).

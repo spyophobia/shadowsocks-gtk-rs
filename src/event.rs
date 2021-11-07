@@ -1,6 +1,8 @@
 //! This module defines events passed between core and GUI elements.
 
-use crate::{gui::notification::NotifyMethod, io::config_loader::ConfigProfile};
+use shadowsocks_gtk_rs::notify_method::NotifyMethod;
+
+use crate::io::config_loader::ConfigProfile;
 
 #[derive(Debug, Clone)]
 pub enum AppEvent {

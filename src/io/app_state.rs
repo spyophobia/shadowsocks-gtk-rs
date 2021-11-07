@@ -4,9 +4,7 @@
 use std::{fmt, fs, io, path::Path, time::Duration};
 
 use serde::{Deserialize, Serialize};
-use shadowsocks_gtk_rs::util::leaky_bucket::NaiveLeakyBucketConfig;
-
-use crate::gui::notification::NotifyMethod;
+use shadowsocks_gtk_rs::{notify_method::NotifyMethod, util::leaky_bucket::NaiveLeakyBucketConfig};
 
 #[derive(Debug)]
 pub enum AppStateError {

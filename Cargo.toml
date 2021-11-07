@@ -36,6 +36,9 @@ serde_yaml = "0.8.21"
 simple_logger = "1.13.0"
 strum = {version = "0.22.0", features = ["derive"]}
 
+[lib]
+path = "src/lib/mod.rs"
+
 [[bin]]
 name = "ssgtkctl"
 path = "src/bin/ssgtkctl/main.rs"

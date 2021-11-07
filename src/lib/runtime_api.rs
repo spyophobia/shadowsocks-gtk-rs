@@ -19,14 +19,14 @@ use crossbeam_channel::Sender;
 use log::{debug, error, trace, warn};
 use serde::{Deserialize, Serialize};
 
-use crate::util;
+use crate::{notify_method::NotifyMethod, util};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum APICommand {
     // GUI
     BacklogShow,
     BacklogHide,
-    // TODO: set notification method
+    SetNotify(NotifyMethod),
 
     // core
     // IDEA: some kind of query command?
@@ -42,6 +42,7 @@ impl fmt::Display for APICommand {
         let msg = match self {
             BacklogShow => "Show Backlog".into(),
             BacklogHide => "Hide Backlog".into(),
+            SetNotify(method) => format!("Set notification method to {}", method),
 
             Restart => "Restart current profile".into(),
             SwitchProfile(name) => format!("Switch Profile to {}", name),

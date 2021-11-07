@@ -7,11 +7,9 @@ use enum_iterator::IntoEnumIterator;
 use gtk::{prelude::*, Menu, MenuItem, RadioMenuItem, SeparatorMenuItem};
 use libappindicator::{AppIndicator, AppIndicatorStatus};
 use log::{debug, error, warn};
-use shadowsocks_gtk_rs::util;
+use shadowsocks_gtk_rs::{notify_method::NotifyMethod, util};
 
 use crate::{event::AppEvent, io::config_loader::ConfigFolder};
-
-use super::notification::NotifyMethod;
 
 const TRAY_TITLE: &str = "Shadowsocks GTK";
 
@@ -160,6 +158,27 @@ impl TrayItem {
             }
             None => warn!("Cannot find RadioMenuItem for profile named \"{}\"", name.as_ref()),
         }
+    }
+
+    /// Notify the tray about notification method change,
+    /// without emitting a `SetNotify` event.
+    pub fn notify_notify_method_change(&mut self, method: NotifyMethod) {
+        let (method_item, listen_enable) = self
+            .notify_method_items
+            .iter()
+            .find(|(item, _)| {
+                let item_name = item
+                    .label()
+                    .unwrap() // variants must have a name (thus label)
+                    .to_string();
+                item_name == method.to_string()
+            })
+            .unwrap(); // RadioMenuItems are generated exhaustively
+
+        debug!("Setting tray to notification method \"{}\"", method);
+        *util::rwlock_write(listen_enable) = false; // set listen disable
+        method_item.set_active(true);
+        *util::rwlock_write(listen_enable) = true; // set listen enable
     }
 
     /// Append a separator to the tray item's menu.

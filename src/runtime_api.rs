@@ -26,6 +26,7 @@ pub enum APICommand {
     // GUI
     BacklogShow,
     BacklogHide,
+    // TODO: set notification method
 
     // core
     // IDEA: some kind of query command?

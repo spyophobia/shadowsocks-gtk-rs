@@ -1,6 +1,6 @@
 //! This module defines events passed between core and GUI elements.
 
-use crate::io::config_loader::ConfigProfile;
+use crate::{gui::notification::NotifyMethod, io::config_loader::ConfigProfile};
 
 #[derive(Debug, Clone)]
 pub enum AppEvent {
@@ -9,7 +9,7 @@ pub enum AppEvent {
     BacklogHide,
     SwitchProfile(ConfigProfile),
     ManualStop,
-    PromptOnError(bool),
+    SetNotify(NotifyMethod),
     Quit,
 
     // from core

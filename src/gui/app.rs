@@ -11,16 +11,16 @@ use std::{
 
 use clap::ArgMatches;
 use crossbeam_channel::{unbounded as unbounded_channel, Receiver, Sender};
-use gtk::{prelude::*, MessageType};
+use gtk::prelude::*;
 use log::{debug, error, info, trace, warn};
-use notify_rust::Urgency;
+
 #[cfg(feature = "runtime_api")]
 use shadowsocks_gtk_rs::runtime_api::{APICommand, APIListener};
 use shadowsocks_gtk_rs::util;
 
 use crate::{
     event::AppEvent,
-    gui::notify,
+    gui::notification::{notify, Level},
     io::{
         app_state::AppState,
         config_loader::{ConfigFolder, ConfigLoadError, ConfigProfile},
@@ -28,7 +28,7 @@ use crate::{
     profile_manager::ProfileManager,
 };
 
-use super::{backlog::BacklogWindow, tray::TrayItem};
+use super::{backlog::BacklogWindow, notification::NotifyMethod, tray::TrayItem};
 
 #[derive(Debug)]
 pub enum AppStartError {
@@ -100,8 +100,7 @@ struct GTKApp {
     backlog_window: Option<BacklogWindow>,
 
     // misc
-    // TODO: use NotifyMethod enum
-    prompt_on_error: bool,
+    notify_method: NotifyMethod,
 }
 
 impl GTKApp {
@@ -159,7 +158,7 @@ impl GTKApp {
                 theme_dir.as_deref(),
                 events_tx.clone(),
                 &config_folder,
-                previous_state.prompt_on_error,
+                previous_state.notify_method,
             );
             // set tray state to match profile manager state
             match util::rwlock_read(&pm_arc).current_profile() {
@@ -186,7 +185,7 @@ impl GTKApp {
             tray,
             backlog_window: None,
 
-            prompt_on_error: previous_state.prompt_on_error,
+            notify_method: previous_state.notify_method,
         })
     }
 
@@ -197,7 +196,7 @@ impl GTKApp {
         AppState {
             most_recent_profile,
             restart_limit: pm.restart_limit,
-            prompt_on_error: self.prompt_on_error,
+            notify_method: self.notify_method,
         }
     }
 
@@ -310,7 +309,10 @@ impl GTKApp {
                 BacklogHide => self.drop_backlog(),
                 SwitchProfile(p) => self.switch_profile(p),
                 ManualStop => self.stop(),
-                PromptOnError(enabled) => self.prompt_on_error = enabled,
+                SetNotify(method) => {
+                    info!("Setting notify method to {}", method);
+                    self.notify_method = method;
+                }
                 Quit => self.quit(),
 
                 OkStop { instance_name } => {
@@ -318,31 +320,18 @@ impl GTKApp {
                     // and a new one is started, therefore we first check for active instance
                     if !util::rwlock_read(&self.profile_manager).is_active() {
                         self.tray.notify_sslocal_stop();
-                        // TODO: finish up
-                        let toast_res = notify::toast(
-                            Urgency::Normal,
-                            "Test",
-                            format!("An instance has stopped: {}", instance_name.unwrap_or("None".into())),
-                            None,
-                        );
-                        if let Err(err) = toast_res {
-                            error!("Cannot display desktop notification: {}", err);
-                        }
+                        let text_2 = format!("An instance has stopped: {}", instance_name.unwrap_or("None".into()));
+                        notify(self.notify_method, Level::Warn, "Test", text_2);
                     }
                 }
                 ErrorStop { instance_name, err } => {
                     self.tray.notify_sslocal_stop();
-                    if self.prompt_on_error {
-                        notify::nonblocking_prompt(
-                            MessageType::Error,
-                            "Auto-restart Stopped",
-                            format!(
-                                "An instance has errored: {}\n{}",
-                                instance_name.unwrap_or("None".into()),
-                                err
-                            ),
-                        );
-                    }
+                    let text_2 = format!(
+                        "An instance has errored: {}\n{}",
+                        instance_name.unwrap_or("None".into()),
+                        err
+                    );
+                    notify(self.notify_method, Level::Error, "Auto-restart Stopped", text_2);
                 }
             }
         }

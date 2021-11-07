@@ -6,6 +6,8 @@ use std::{fmt, fs, io, path::Path, time::Duration};
 use serde::{Deserialize, Serialize};
 use shadowsocks_gtk_rs::util::leaky_bucket::NaiveLeakyBucketConfig;
 
+use crate::gui::notification::NotifyMethod;
+
 #[derive(Debug)]
 pub enum AppStateError {
     ParseError(serde_yaml::Error),
@@ -39,7 +41,7 @@ pub struct AppState {
     /// `""` indicates none.
     pub most_recent_profile: String,
     pub restart_limit: NaiveLeakyBucketConfig,
-    pub prompt_on_error: bool,
+    pub notify_method: NotifyMethod,
 }
 
 impl Default for AppState {
@@ -47,7 +49,7 @@ impl Default for AppState {
         Self {
             most_recent_profile: String::new(),
             restart_limit: NaiveLeakyBucketConfig::new(5, Duration::from_secs(30)),
-            prompt_on_error: true,
+            notify_method: NotifyMethod::Toast,
         }
     }
 }

@@ -3,12 +3,15 @@
 use std::{fmt, rc::Rc, sync::RwLock};
 
 use crossbeam_channel::Sender;
-use gtk::{prelude::*, CheckMenuItem, Menu, MenuItem, RadioMenuItem, SeparatorMenuItem};
+use enum_iterator::IntoEnumIterator;
+use gtk::{prelude::*, Menu, MenuItem, RadioMenuItem, SeparatorMenuItem};
 use libappindicator::{AppIndicator, AppIndicatorStatus};
 use log::{debug, error, warn};
 use shadowsocks_gtk_rs::util;
 
 use crate::{event::AppEvent, io::config_loader::ConfigFolder};
+
+use super::notification::NotifyMethod;
 
 const TRAY_TITLE: &str = "Shadowsocks GTK";
 
@@ -35,6 +38,11 @@ pub struct TrayItem {
     /// The reason we store these is the same as the reason for
     /// storing `manual_stop_item`.
     profile_items: Vec<(RadioMenuItem, Rc<RwLock<bool>>)>,
+    /// The `RadioMenuItem`s for the list of notify methods.
+    ///
+    /// The reason we store these is the same as the reason for
+    /// storing `manual_stop_item`.
+    notify_method_items: Vec<(RadioMenuItem, Rc<RwLock<bool>>)>,
 }
 
 impl fmt::Debug for TrayItem {
@@ -55,7 +63,7 @@ impl TrayItem {
         icon_theme_dir: Option<&str>,
         events_tx: Sender<AppEvent>,
         config_folder: &ConfigFolder,
-        prompt_enable: bool,
+        notify_method: NotifyMethod,
     ) -> Self {
         // create stop button up top because `TrayItem` has a mandatory field
         let manual_stop_item = {
@@ -82,7 +90,8 @@ impl TrayItem {
             },
             menu: Menu::new(),
             manual_stop_item,
-            profile_items: vec![], // will be populated when adding dynamic profiles
+            profile_items: vec![],       // will be populated when adding dynamic profiles
+            notify_method_items: vec![], // will be replaced when adding the selector
         };
         tray.ai.set_status(AppIndicatorStatus::Active);
 
@@ -95,20 +104,11 @@ impl TrayItem {
         // add stop button (previously created)
         tray.menu.append(&tray.manual_stop_item.0);
 
-        // add prompt toggle
-        let toggle_prompt_item = {
-            let events_tx = events_tx.clone();
-            let toggle = CheckMenuItem::with_label("Prompt on Error");
-            toggle.set_active(prompt_enable);
-            toggle.connect_toggled(move |item| {
-                let ev = AppEvent::PromptOnError(item.is_active());
-                if let Err(_) = events_tx.send(ev) {
-                    error!("Trying to send PromptEnable event, but all receivers have hung up.");
-                }
-            });
-            toggle
-        };
-        tray.menu.append(&toggle_prompt_item);
+        // add notify method selector
+        let (notify_selector_item, notify_method_items) =
+            generate_notify_method_selector(notify_method, events_tx.clone());
+        tray.notify_method_items = notify_method_items;
+        tray.menu.append(&notify_selector_item);
 
         // add other static menu entries
         let backlog_tx = events_tx.clone();
@@ -279,4 +279,65 @@ where
             ConfigMenuItem::Group(parent)
         }
     }
+}
+
+/// Constructs the selection menu for `NotifyMethod` by enumerating its variants.
+///
+/// Returns the constructed `MenuItem` and all the generated `RadioMenuItem`s
+/// (alongside their enable flags) in a pair.
+fn generate_notify_method_selector(
+    initial: NotifyMethod,
+    events_tx: Sender<AppEvent>,
+) -> (MenuItem, Vec<(RadioMenuItem, Rc<RwLock<bool>>)>) {
+    // create radio items
+    let radios: Vec<_> = NotifyMethod::into_enum_iter()
+        .map(|method| {
+            let radio_item = RadioMenuItem::with_label(&method.to_string());
+            radio_item.set_sensitive(true);
+            (radio_item, method)
+        })
+        .collect();
+
+    // add to group
+    let group_ref = &radios[0].0;
+    radios
+        .iter()
+        .for_each(|(radio_item, _)| radio_item.join_group(Some(group_ref)));
+
+    // set initial value
+    radios
+        .iter()
+        .find(|(_, method)| *method == initial)
+        .unwrap() // we have one of every variant
+        .0
+        .set_active(true);
+
+    // create submenu
+    let submenu = Menu::new();
+    radios.iter().for_each(|(radio_item, _)| submenu.append(radio_item));
+
+    // connect and store
+    let connected_radios = radios
+        .into_iter()
+        .map(|(radio_item, method)| {
+            let enable_flag = Rc::new(RwLock::new(true));
+            let enable_flag_mv = Rc::clone(&enable_flag);
+            let events_tx = events_tx.clone();
+            radio_item.connect_toggled(move |radio| {
+                if radio.is_active() && *util::rwlock_read(&enable_flag_mv) {
+                    if let Err(_) = events_tx.send(AppEvent::SetNotify(method)) {
+                        error!("Trying to send SetNotify event, but all receivers have hung up.");
+                    }
+                }
+            });
+            (radio_item, enable_flag)
+        })
+        .collect();
+
+    // create parent
+    let parent = MenuItem::with_label("Notifications");
+    parent.set_sensitive(true);
+    parent.set_submenu(Some(&submenu));
+
+    (parent, connected_radios)
 }

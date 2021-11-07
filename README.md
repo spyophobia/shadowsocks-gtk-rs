@@ -23,11 +23,13 @@ You will need to first install: `rust`, `shadowsocks-rust`, `GTK3`, and `libappi
 
 The latest versions are **highly recommended**.
 
-| Distro        | GTK3           | libappindicator              |
-| ------------- | -------------- | ---------------------------- |
-| Arch `pacman` | `gtk3`         | `libappindicator-gtk3`       |
-| Debian `apt`  | `libgtk-3-dev` | `libayatana-appindicator3-1` |
-| Redhat `dnf`  | `gtk3-devel`   | `libappindicator-gtk3`       |
+| Distro        | GTK3           | libappindicator        |
+| ------------- | -------------- | ---------------------- |
+| Arch `pacman` | `gtk3`         | `libappindicator-gtk3` |
+| Debian `apt`  | `libgtk-3-dev` | `libappindicator3-dev` |
+| Redhat `dnf`  | `gtk3-devel`   | `libappindicator-gtk3` |
+
+You might also need to manually install dependencies of `GTK3` if they are not installed automatically for you (e.g. `atk`, `pango`). If you are not sure, just try to compile/install. `cargo` will tell you what dependencies you are missing if that is the case.
 
 If you are using any recent version of Gnome as your desktop environment, you also need [gnome-shell-extension-appindicator](https://extensions.gnome.org/extension/615) for the tray icon to show up.
 

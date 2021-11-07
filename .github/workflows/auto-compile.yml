@@ -25,8 +25,8 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
-    - name: Rust cache
-      uses: Swatinem/rust-cache@v1
+#     - name: Rust cache
+#       uses: Swatinem/rust-cache@v1
     - name: Setup & cache dependencies
       uses: awalsh128/cache-apt-pkgs-action@v1
       with:

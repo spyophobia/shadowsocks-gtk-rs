@@ -3,7 +3,7 @@
 // public members
 pub mod app;
 pub mod backlog;
-pub mod popup;
+pub mod notify;
 #[cfg(target_os = "linux")]
 pub mod tray;
 

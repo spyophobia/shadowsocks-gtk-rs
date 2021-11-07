@@ -29,6 +29,7 @@ pub enum APICommand {
     BacklogHide,
 
     // core
+    // IDEA: some kind of query command?
     Restart,
     SwitchProfile(String),
     Stop,

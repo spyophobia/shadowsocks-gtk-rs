@@ -3,8 +3,9 @@ use gtk::{
     ButtonsType, MessageDialog, MessageType,
 };
 use log::debug;
+use notify_rust::{error as notify_error, Hint, Notification, NotificationHandle, Timeout, Urgency};
 
-pub fn blocking_prompt<S0, S1>(level: MessageType, text_1: S0, text_2: S1)
+pub fn nonblocking_prompt<S0, S1>(level: MessageType, text_1: S0, text_2: S1)
 where
     S0: AsRef<str>,
     S1: AsRef<str>,
@@ -24,4 +25,28 @@ where
     }); // handle close
     dialog.show_all(); // render
     dialog.present(); // bring to foreground
+}
+
+pub fn toast<S0, S1>(
+    urgency: Urgency,
+    text_1: S0,
+    text_2: S1,
+    icon: Option<&str>,
+) -> notify_error::Result<NotificationHandle>
+where
+    S0: AsRef<str>,
+    S1: AsRef<str>,
+{
+    let mut n = Notification::new();
+
+    n.body(text_2.as_ref())
+        .hint(Hint::Category("network".into()))
+        .summary(text_1.as_ref())
+        .timeout(Timeout::Default)
+        .urgency(urgency);
+    match icon {
+        Some(icon) => n.icon(icon.as_ref()),
+        None => n.auto_icon(),
+    };
+    n.show()
 }

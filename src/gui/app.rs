@@ -13,13 +13,14 @@ use clap::ArgMatches;
 use crossbeam_channel::{unbounded as unbounded_channel, Receiver, Sender};
 use gtk::{prelude::*, MessageType};
 use log::{debug, error, info, trace, warn};
+use notify_rust::Urgency;
 #[cfg(feature = "runtime_api")]
 use shadowsocks_gtk_rs::runtime_api::{APICommand, APIListener};
 use shadowsocks_gtk_rs::util;
 
 use crate::{
     event::AppEvent,
-    gui::popup,
+    gui::notify,
     io::{
         app_state::AppState,
         config_loader::{ConfigFolder, ConfigLoadError, ConfigProfile},
@@ -99,6 +100,7 @@ struct GTKApp {
     backlog_window: Option<BacklogWindow>,
 
     // misc
+    // TODO: use NotifyMethod enum
     prompt_on_error: bool,
 }
 
@@ -311,18 +313,27 @@ impl GTKApp {
                 PromptOnError(enabled) => self.prompt_on_error = enabled,
                 Quit => self.quit(),
 
-                OkStop { instance_name: _ } => {
+                OkStop { instance_name } => {
                     // this event could be received because an old instance is stopped
                     // and a new one is started, therefore we first check for active instance
                     if !util::rwlock_read(&self.profile_manager).is_active() {
                         self.tray.notify_sslocal_stop();
-                        // IDEA: DBus notification?
+                        // TODO: finish up
+                        let toast_res = notify::toast(
+                            Urgency::Normal,
+                            "Test",
+                            format!("An instance has stopped: {}", instance_name.unwrap_or("None".into())),
+                            None,
+                        );
+                        if let Err(err) = toast_res {
+                            error!("Cannot display desktop notification: {}", err);
+                        }
                     }
                 }
                 ErrorStop { instance_name, err } => {
                     self.tray.notify_sslocal_stop();
                     if self.prompt_on_error {
-                        popup::blocking_prompt(
+                        notify::nonblocking_prompt(
                             MessageType::Error,
                             "Auto-restart Stopped",
                             format!(

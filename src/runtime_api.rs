@@ -125,6 +125,7 @@ impl APIListener {
     {
         let socket_path = bind_addr.as_ref().into();
         let listener = {
+            // IDEA: use lock file
             let bind_res = UnixListener::bind(&bind_addr);
             if let Err(err) = &bind_res {
                 error!("Runtime API cannot bind to {:?}: {}", bind_addr.as_ref(), err);

@@ -67,9 +67,11 @@ cargo test print_cmd_egs -- --nocapture
 GTK's rust binding has significantly better support than that of QT. I'm too lazy to support both so the choice is obvious.
 
 ## Why aren't you using GTK4?
-This project depends on `libappindicator` for tray icon support, which does not yet support GTK4.
+This project depends on `libappindicator` for tray icon support, which only supports GTK3.
 
-See [here](https://github.com/AyatanaIndicators/libayatana-appindicator/issues/22).
+In fact `libappindicator` development has moved to `libayatana-appindicator`, which also doesn't support GTK4 just yet but at least has an open issue for it. See [here](https://github.com/AyatanaIndicators/libayatana-appindicator/issues/22).
+
+And finally, GTK4 is simply a bit too new and shiny for my liking. I much more prefer the stability and reputation offered by and associated with GTK3.
 
 ## Why target `sslocal` command line API?
 *Because I'm a lazy arse.*

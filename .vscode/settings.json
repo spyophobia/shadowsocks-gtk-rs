@@ -11,6 +11,7 @@
     "pango",
     "SIGINT",
     "spyophobia",
+    "ssgtk",
     "ssgtkctl",
     "sslocal",
     "unistd",

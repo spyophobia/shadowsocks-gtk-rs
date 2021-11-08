@@ -4,11 +4,11 @@
 
 By default, GTK searches [a preset list of system directories](https://askubuntu.com/a/43951/1020143) for the application icon. If the icon is blank it means the image file `shadowsocks-gtk-rs[.ext]` is not found in those directories. You can resolve this by getting [/res/logo/shadowsocks-gtk-rs.png](/res/logo/shadowsocks-gtk-rs.png) and placing it under `/usr/share/pixmaps/`. After a reboot the icon should be picked up.
 
-Alternatively `shadowsocks-gtk-rs` has launch parameters `--icon-theme-dir` and `--icon-name` if you want to use a custom icon. For usage, run:
+Alternatively `ssgtk` has launch parameters `--icon-theme-dir` and `--icon-name` if you want to use a custom icon. For usage, run:
 ```sh
 cargo run --release -- --help
 # or
-shadowsocks-gtk-rs --help
+ssgtk --help
 ```
 
 ## How to customise configuration?

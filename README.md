@@ -2,6 +2,13 @@
 
 A desktop GUI frontend for shadowsocks-rust client implemented with gtk-rs.
 
+This package contains two binaries:
+
+| Binary     | Functionality                                                                           |
+| ---------- | --------------------------------------------------------------------------------------- |
+| `ssgtk`    | The main executable; launches the GUI application.                                      |
+| `ssgtkctl` | The runtime API controller; see [Q&A](res/QnA.md#can-i-bind-a-shortcut-to-some-action). |
+
 ## Work in Progress
 
 Be advised that this application may be incomplete and/or buggy. But do rest assured that it won't destroy your OS or something.
@@ -57,7 +64,7 @@ cargo run --release -- --help
 
 ```sh
 cargo install shadowsocks-gtk-rs
-shadowsocks-gtk-rs --help
+ssgtk --help
 ```
 
 # Useful Reading

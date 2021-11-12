@@ -5,7 +5,8 @@
 //! bind a system shortcut to a particular action.
 
 use std::{
-    fmt, fs,
+    fmt,
+    fs::{self, File},
     io::{self, BufRead, BufReader, Write},
     net::Shutdown,
     os::unix::net::{UnixListener, UnixStream},
@@ -16,6 +17,7 @@ use std::{
 };
 
 use crossbeam_channel::Sender;
+use fs2::FileExt;
 use log::{debug, error, trace, warn};
 use serde::{Deserialize, Serialize};
 
@@ -88,6 +90,10 @@ impl From<json5::Error> for CmdError {
 #[derive(Debug)]
 pub struct APIListener {
     /// Saved so that we can remove it on drop.
+    lock_file_path: PathBuf,
+    /// Saved so that we can unlock on drop.
+    lock_file: File,
+    /// Saved so that we can remove it on drop.
     socket_path: PathBuf,
     /// Default: false. Set to true to halt the listener on next poll.
     halt_flag: Arc<RwLock<bool>>,
@@ -97,8 +103,11 @@ pub struct APIListener {
 
 impl Drop for APIListener {
     fn drop(&mut self) {
+        trace!("Runtime API listener is getting dropped");
+
         // notify listener halt
         *util::rwlock_write(&self.halt_flag) = true;
+
         // wait for daemon threads to finish
         if let Some(handle) = self.listener_handle.take() {
             if let Err(err) = handle.join() {
@@ -108,6 +117,7 @@ impl Drop for APIListener {
                 );
             };
         }
+
         // remove socket file
         match fs::remove_file(&self.socket_path) {
             Ok(_) => debug!("Removed socket file at {:?}", &self.socket_path),
@@ -115,6 +125,16 @@ impl Drop for APIListener {
                 "Failed to cleanup runtime API's socket file at {:?}: {}",
                 &self.socket_path, err
             ),
+        }
+
+        // unlock and remove lock file
+        match self.lock_file.unlock() {
+            Ok(_) => trace!("Unlocked lock file at {:?}", &self.lock_file_path),
+            Err(err) => error!("Failed to unlock lock file at {:?}: {}", &self.lock_file_path, err),
+        }
+        match fs::remove_file(&self.lock_file_path) {
+            Ok(_) => trace!("Removed lock file at {:?}", &self.lock_file_path),
+            Err(err) => warn!("Failed to remove lock file at {:?}: {}", &self.lock_file_path, err),
         }
     }
 }
@@ -124,9 +144,41 @@ impl APIListener {
     where
         P: AsRef<Path>,
     {
-        let socket_path = bind_addr.as_ref().into();
+        // try to lock lock file
+        let lock_file_path = {
+            let mut path = bind_addr.as_ref().to_path_buf();
+            let mut name = path
+                .file_name()
+                .ok_or(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "Listener socket path cannot be \"/\" or end with \"..\"",
+                ))?
+                .to_str()
+                .ok_or(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "Listener socket path is not UTF-8",
+                ))?
+                .to_string();
+            name.push_str(".lock");
+            path.set_file_name(name);
+            path
+        };
+        trace!("Creating and locking lock file at {:?}", lock_file_path);
+        let lock_file = File::create(&lock_file_path)?;
+        if let Err(err) = lock_file.try_lock_exclusive() {
+            error!("Failed to obtain lock on lock file {:?}: {}", lock_file_path, err);
+            return Err(err);
+        }
+
+        let socket_path = bind_addr.as_ref().to_path_buf();
         let listener = {
-            // IDEA: use lock file
+            if bind_addr.as_ref().exists() {
+                // since lock was successful, this means the application
+                // has panicked last time and hasn't performed cleanup
+                // therefore it's safe to remove the listener
+                fs::remove_file(&bind_addr)?;
+            }
+            debug!("Binding runtime API listener to {:?}", bind_addr.as_ref());
             let bind_res = UnixListener::bind(&bind_addr);
             if let Err(err) = &bind_res {
                 error!("Runtime API cannot bind to {:?}: {}", bind_addr.as_ref(), err);
@@ -168,6 +220,8 @@ impl APIListener {
             .into();
 
         let ret = Self {
+            lock_file_path,
+            lock_file,
             socket_path,
             halt_flag,
             listener_handle,

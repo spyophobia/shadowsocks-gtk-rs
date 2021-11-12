@@ -1291,7 +1291,7 @@ dependencies = [
 
 [[package]]
 name = "shadowsocks-gtk-rs"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "clap",
  "crossbeam-channel",

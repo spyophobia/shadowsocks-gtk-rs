@@ -7,8 +7,7 @@
 use std::{
     fmt,
     fs::{self, File},
-    io::{self, BufRead, BufReader, Write},
-    net::Shutdown,
+    io::{self, BufRead, BufReader},
     os::unix::net::{UnixListener, UnixStream},
     path::{Path, PathBuf},
     sync::{Arc, RwLock},
@@ -19,41 +18,7 @@ use std::{
 use crossbeam_channel::Sender;
 use fs2::FileExt;
 use log::{debug, error, trace, warn};
-use serde::{Deserialize, Serialize};
-
-use crate::{notify_method::NotifyMethod, util};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum APICommand {
-    // GUI
-    BacklogShow,
-    BacklogHide,
-    SetNotify(NotifyMethod),
-
-    // core
-    // IDEA: some kind of query command?
-    Restart,
-    SwitchProfile(String),
-    Stop,
-    Quit,
-}
-
-impl fmt::Display for APICommand {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use APICommand::*;
-        let msg = match self {
-            BacklogShow => "Show Backlog".into(),
-            BacklogHide => "Hide Backlog".into(),
-            SetNotify(method) => format!("Set notification method to {}", method),
-
-            Restart => "Restart current profile".into(),
-            SwitchProfile(name) => format!("Switch Profile to {}", name),
-            Stop => "Stop current profile".into(),
-            Quit => "Quit application".into(),
-        };
-        write!(f, "{}", msg)
-    }
-}
+use shadowsocks_gtk_rs::{runtime_api_msg::APICommand, util};
 
 #[derive(Debug)]
 enum CmdError {
@@ -241,21 +206,6 @@ fn handle_client(stream: UnixStream, cmds_tx: &Sender<APICommand>) -> Result<(),
     };
     debug!("Runtime API received a command: {}", cmd);
     cmds_tx.send(cmd).map_err(|_| CmdError::SendError)
-}
-
-pub fn send_cmd<P>(destination: P, cmd: APICommand) -> io::Result<()>
-where
-    P: AsRef<Path>,
-{
-    let mut socket = UnixStream::connect(destination)?;
-    socket.set_write_timeout(Some(Duration::from_secs(3)))?;
-    socket.write_all(
-        json5::to_string(&cmd)
-            .expect("serialising APICommand to json5 is infallible")
-            .as_bytes(),
-    )?;
-    socket.flush()?;
-    socket.shutdown(Shutdown::Both)
 }
 
 #[cfg(test)]

@@ -1,6 +1,12 @@
-use std::{io, path::PathBuf};
+use std::{
+    io::{self, Write},
+    net,
+    os::unix::net::UnixStream,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
-use shadowsocks_gtk_rs::runtime_api::{self, APICommand};
+use shadowsocks_gtk_rs::runtime_api_msg::APICommand;
 
 mod clap_def;
 
@@ -41,5 +47,20 @@ fn main() -> io::Result<()> {
     };
 
     // send
-    runtime_api::send_cmd(socket_path, cmd)
+    send_cmd(socket_path, cmd)
+}
+
+fn send_cmd<P>(destination: P, cmd: APICommand) -> io::Result<()>
+where
+    P: AsRef<Path>,
+{
+    let mut socket = UnixStream::connect(destination)?;
+    socket.set_write_timeout(Some(Duration::from_secs(3)))?;
+    socket.write_all(
+        json5::to_string(&cmd)
+            .expect("serialising APICommand to json5 is infallible")
+            .as_bytes(),
+    )?;
+    socket.flush()?;
+    socket.shutdown(net::Shutdown::Both)
 }

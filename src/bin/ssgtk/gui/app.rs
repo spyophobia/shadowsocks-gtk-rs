@@ -15,7 +15,7 @@ use gtk::prelude::*;
 use log::{debug, error, info, trace, warn};
 
 #[cfg(feature = "runtime_api")]
-use shadowsocks_gtk_rs::runtime_api::{APICommand, APIListener};
+use shadowsocks_gtk_rs::runtime_api_msg::APICommand;
 use shadowsocks_gtk_rs::{notify_method::NotifyMethod, util};
 
 use crate::{
@@ -24,6 +24,7 @@ use crate::{
     io::{
         app_state::AppState,
         config_loader::{ConfigFolder, ConfigLoadError, ConfigProfile},
+        runtime_api::APIListener,
     },
     profile_manager::ProfileManager,
 };
@@ -413,6 +414,7 @@ pub fn run(clap_matches: &ArgMatches) -> Result<(), AppStartError> {
     );
 
     // start GTK main loop
+    info!("Application started");
     gtk::main(); // blocks until `gtk::main_quit` is called
 
     // cleanup

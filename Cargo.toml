@@ -2,7 +2,7 @@
 authors = [
   "spyophobia <76800505+spyophobia@users.noreply.github.com>",
 ]
-default-run = "shadowsocks-gtk-rs"
+default-run = "ssgtk"
 description = "A desktop GUI frontend for shadowsocks-rust client implemented with gtk-rs."
 edition = "2021"
 homepage = "https://github.com/spyophobia/shadowsocks-gtk-rs"
@@ -11,7 +11,7 @@ license = "GPL-3.0-or-later"
 name = "shadowsocks-gtk-rs"
 readme = "README.md"
 repository = "https://github.com/spyophobia/shadowsocks-gtk-rs"
-version = "0.1.1"
+version = "0.2.0"
 
 [features]
 default = ["runtime_api"]
@@ -38,6 +38,10 @@ strum = {version = "0.22.0", features = ["derive"]}
 
 [lib]
 path = "src/lib/mod.rs"
+
+[[bin]]
+name = "ssgtk"
+path = "src/bin/ssgtk/main.rs"
 
 [[bin]]
 name = "ssgtkctl"

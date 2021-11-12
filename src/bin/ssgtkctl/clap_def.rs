@@ -2,7 +2,7 @@
 
 use std::{env, path::PathBuf};
 
-use clap::{crate_authors, crate_version, App, AppSettings, Arg, SubCommand};
+use clap::{crate_authors, crate_version, App, Arg, SubCommand};
 use shadowsocks_gtk_rs::notify_method::NotifyMethod;
 use strum::VariantNames;
 
@@ -13,12 +13,16 @@ pub fn build_app() -> App<'static, 'static> {
         .version(crate_version!())
         .author(crate_authors!())
         .about("A delegate binary that sends commands to the runtime API for your convenience.")
-        .settings(&[
-            AppSettings::AllowNegativeNumbers,
-            AppSettings::DisableHelpSubcommand,
-            AppSettings::InferSubcommands,
-            AppSettings::SubcommandRequiredElseHelp,
-        ]);
+        .settings({
+            use clap::AppSettings::*;
+            &[
+                AllowNegativeNumbers,
+                ColoredHelp,
+                DisableHelpSubcommand,
+                InferSubcommands,
+                SubcommandRequiredElseHelp,
+            ]
+        });
 
     // args
     let arg_runtime_api_socket_path = {

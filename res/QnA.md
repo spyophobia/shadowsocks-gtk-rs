@@ -4,11 +4,11 @@
 
 By default, GTK searches [a preset list of system directories](https://askubuntu.com/a/43951/1020143) for the application icon. If the icon is blank it means the image file `shadowsocks-gtk-rs[.ext]` is not found in those directories. You can resolve this by getting [/res/logo/shadowsocks-gtk-rs.png](/res/logo/shadowsocks-gtk-rs.png) and placing it under `/usr/share/pixmaps/`. After a reboot the icon should be picked up.
 
-Alternatively `shadowsocks-gtk-rs` has launch parameters `--icon-theme-dir` and `--icon-name` if you want to use a custom icon. For usage, run:
+Alternatively `ssgtk` has launch parameters `--icon-theme-dir` and `--icon-name` if you want to use a custom icon. For usage, run:
 ```sh
 cargo run --release -- --help
 # or
-shadowsocks-gtk-rs --help
+ssgtk --help
 ```
 
 ## How to customise configuration?
@@ -67,9 +67,11 @@ cargo test print_cmd_egs -- --nocapture
 GTK's rust binding has significantly better support than that of QT. I'm too lazy to support both so the choice is obvious.
 
 ## Why aren't you using GTK4?
-This project depends on `libappindicator` for tray icon support, which does not yet support GTK4.
+This project depends on `libappindicator` for tray icon support, which only supports GTK3.
 
-See [here](https://github.com/AyatanaIndicators/libayatana-appindicator/issues/22).
+In fact `libappindicator` development has moved to `libayatana-appindicator`, which also doesn't support GTK4 just yet but at least has an open issue for it. See [here](https://github.com/AyatanaIndicators/libayatana-appindicator/issues/22).
+
+And finally, GTK4 is simply a bit too new and shiny for my liking. I much more prefer the stability and reputation offered by and associated with GTK3.
 
 ## Why target `sslocal` command line API?
 *Because I'm a lazy arse.*

@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use clap::{crate_authors, crate_description, crate_name, crate_version, App, AppSettings, Arg};
+use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg};
 
 use crate::io::app_state::AppState;
 
@@ -23,7 +23,10 @@ pub fn build_app() -> App<'static, 'static> {
         .version(crate_version!())
         .author(crate_authors!())
         .about(crate_description!())
-        .settings(&[AppSettings::AllowNegativeNumbers, AppSettings::DisableHelpSubcommand]);
+        .settings({
+            use clap::AppSettings::*;
+            &[AllowNegativeNumbers, ColoredHelp, DisableHelpSubcommand]
+        });
 
     // args
     let arg_profiles_dir = {

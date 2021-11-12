@@ -13,34 +13,30 @@ use crate::{event::AppEvent, io::config_loader::ConfigFolder};
 
 const TRAY_TITLE: &str = "Shadowsocks GTK";
 
+/// A `RadioMenuItem` with its listen enable flag.
+///
+/// We store the menu item because an external event could request that
+/// it be set to active.
+///
+/// We have a listen enable flag because we want to be able to prevent it
+/// from emitting an extraneous event when we programmatically set it to active.
+type ListeningRadioMenuItem = (RadioMenuItem, Rc<RwLock<bool>>);
+
 #[derive(Debug, Clone)]
 enum ConfigMenuItem {
-    Profile(RadioMenuItem, Rc<RwLock<bool>>),
+    Profile(ListeningRadioMenuItem),
     Group(MenuItem),
 }
 
 pub struct TrayItem {
     ai: AppIndicator,
     menu: Menu,
-    /// The `RadioMenuItem` for the stop button.
-    ///
-    /// We store the menu item because we need to set it to active
-    /// when an external event caused `sslocal` to stop.
-    ///
-    /// We have a listen enable flag because we want to be able to
-    /// prevent it from emitting an extraneous event when we
-    /// programmatically set it to active.
-    manual_stop_item: (RadioMenuItem, Rc<RwLock<bool>>),
-    /// The `RadioMenuItem`s for the list of profiles.
-    ///
-    /// The reason we store these is the same as the reason for
-    /// storing `manual_stop_item`.
-    profile_items: Vec<(RadioMenuItem, Rc<RwLock<bool>>)>,
-    /// The `RadioMenuItem`s for the list of notify methods.
-    ///
-    /// The reason we store these is the same as the reason for
-    /// storing `manual_stop_item`.
-    notify_method_items: Vec<(RadioMenuItem, Rc<RwLock<bool>>)>,
+    /// The `ListeningRadioMenuItem` for the stop button.
+    manual_stop_item: ListeningRadioMenuItem,
+    /// The `ListeningRadioMenuItem`s for the list of profiles.
+    profile_items: Vec<ListeningRadioMenuItem>,
+    /// The `ListeningRadioMenuItem`s for the list of notify methods.
+    notify_method_items: Vec<ListeningRadioMenuItem>,
 }
 
 impl fmt::Debug for TrayItem {
@@ -218,9 +214,9 @@ impl TrayItem {
                 for cf in g.content.iter() {
                     let child = generate_profile_tree(cf, radio_group, events_tx.clone(), &mut radio_menu_item_list);
                     match child {
-                        ConfigMenuItem::Profile(item, listen_enable) => {
-                            self.menu.append(&item); // build menu
-                            radio_menu_item_list.push((item, listen_enable)); // save to list
+                        ConfigMenuItem::Profile(radio_item) => {
+                            self.menu.append(&radio_item.0); // build menu
+                            radio_menu_item_list.push(radio_item); // save to list
                         }
                         ConfigMenuItem::Group(item) => self.menu.append(&item), // build menu
                     }
@@ -230,9 +226,9 @@ impl TrayItem {
                 let profile_menu_item =
                     generate_profile_tree(profile, radio_group, events_tx, &mut radio_menu_item_list);
                 match profile_menu_item {
-                    ConfigMenuItem::Profile(item, listen_enable) => {
-                        self.menu.append(&item); // build menu
-                        radio_menu_item_list.push((item, listen_enable)); //  save to list
+                    ConfigMenuItem::Profile(radio_item) => {
+                        self.menu.append(&radio_item.0); // build menu
+                        radio_menu_item_list.push(radio_item); //  save to list
                     }
                     ConfigMenuItem::Group(_) => unreachable!("profile_menu_item should be a profile"),
                 }
@@ -259,7 +255,7 @@ fn generate_profile_tree<G>(
     config_folder: &ConfigFolder,
     group: &G,
     events_tx: Sender<AppEvent>,
-    radio_menu_item_list: &mut Vec<(RadioMenuItem, Rc<RwLock<bool>>)>,
+    radio_menu_item_list: &mut Vec<ListeningRadioMenuItem>,
 ) -> ConfigMenuItem
 where
     G: IsA<RadioMenuItem>,
@@ -278,15 +274,15 @@ where
                     }
                 }
             });
-            ConfigMenuItem::Profile(menu_item, enable_flag)
+            ConfigMenuItem::Profile((menu_item, enable_flag))
         }
         ConfigFolder::Group(g) => {
             let submenu = Menu::new();
             for cf in g.content.iter() {
                 match generate_profile_tree(cf, group, events_tx.clone(), radio_menu_item_list) {
-                    ConfigMenuItem::Profile(item, listen_enable) => {
-                        submenu.append(&item); // build menu
-                        radio_menu_item_list.push((item, listen_enable)); // save to list
+                    ConfigMenuItem::Profile(radio_item) => {
+                        submenu.append(&radio_item.0); // build menu
+                        radio_menu_item_list.push(radio_item); //  save to list
                     }
                     ConfigMenuItem::Group(item) => submenu.append(&item), // build menu
                 }
@@ -307,7 +303,7 @@ where
 fn generate_notify_method_selector(
     initial: NotifyMethod,
     events_tx: Sender<AppEvent>,
-) -> (MenuItem, Vec<(RadioMenuItem, Rc<RwLock<bool>>)>) {
+) -> (MenuItem, Vec<ListeningRadioMenuItem>) {
     // create radio items
     let radios: Vec<_> = NotifyMethod::into_enum_iter()
         .map(|method| {

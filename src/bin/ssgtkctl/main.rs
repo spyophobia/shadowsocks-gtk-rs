@@ -47,7 +47,12 @@ fn main() -> io::Result<()> {
     };
 
     // send
-    send_cmd(socket_path, cmd)
+    let send_res = send_cmd(socket_path, cmd);
+    match &send_res {
+        Ok(_) => println!("Command sent successfully"),
+        Err(_) => println!("Failed to send command"),
+    }
+    send_res
 }
 
 fn send_cmd<P>(destination: P, cmd: APICommand) -> io::Result<()>

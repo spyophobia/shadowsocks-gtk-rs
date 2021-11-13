@@ -18,13 +18,14 @@ use log::{debug, error, info, trace, warn};
 use shadowsocks_gtk_rs::runtime_api_msg::APICommand;
 use shadowsocks_gtk_rs::{notify_method::NotifyMethod, util};
 
+#[cfg(feature = "runtime_api")]
+use crate::io::runtime_api::APIListener;
 use crate::{
     event::AppEvent,
     gui::notification::{notify, Level},
     io::{
         app_state::AppState,
         config_loader::{ConfigFolder, ConfigLoadError, ConfigProfile},
-        runtime_api::APIListener,
     },
     profile_manager::ProfileManager,
 };

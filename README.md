@@ -1,5 +1,7 @@
 # shadowsocks-gtk-rs
 
+[![Auto compile test](https://github.com/spyophobia/shadowsocks-gtk-rs/actions/workflows/auto-compile.yml/badge.svg?branch=master)](https://github.com/spyophobia/shadowsocks-gtk-rs/actions/workflows/auto-compile.yml)
+
 A desktop GUI frontend for shadowsocks-rust client implemented with gtk-rs.
 
 This package contains two binaries:

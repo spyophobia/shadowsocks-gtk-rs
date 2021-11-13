@@ -10,7 +10,7 @@ use std::{
     process::{Child, Command, Stdio},
 };
 
-use log::{debug, warn};
+use log::{debug, error, warn};
 use serde::{Deserialize, Serialize};
 
 /// The default path of `sslocal` binary, if not defined by profile
@@ -326,6 +326,11 @@ impl ConfigFolder {
             }
         }
         if subdirs.is_empty() {
+            error!(
+                "The specified profile directory is empty; \
+                please read Q&A for a guide on creating a configuration"
+            );
+            error!("See https://github.com/spyophobia/shadowsocks-gtk-rs/blob/master/res/QnA.md");
             Err(ConfigLoadError::EmptyGroup(full_path_str.into()))
         } else {
             Ok(ConfigFolder::Group(ConfigGroup {

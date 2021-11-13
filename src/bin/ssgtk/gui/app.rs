@@ -328,7 +328,7 @@ impl GTKApp {
                     if !util::rwlock_read(&self.profile_manager).is_active() {
                         self.tray.notify_sslocal_stop();
                         let text_2 = format!("An instance has stopped: {}", instance_name.unwrap_or("None".into()));
-                        notify(self.notify_method, Level::Warn, "Test", text_2);
+                        notify(self.notify_method, Level::Warn, "Auto-restart Stopped", text_2);
                     }
                 }
                 ErrorStop { instance_name, err } => {

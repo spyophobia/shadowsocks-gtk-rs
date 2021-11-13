@@ -15,7 +15,6 @@ pub enum APICommand {
     SetNotify(NotifyMethod),
 
     // core
-    // IDEA: some kind of query command?
     Restart,
     SwitchProfile(String),
     Stop,

@@ -22,7 +22,6 @@ use shadowsocks_gtk_rs::{notify_method::NotifyMethod, util};
 use crate::io::runtime_api::APIListener;
 use crate::{
     event::AppEvent,
-    gui::notification::{notify, Level},
     io::{
         app_state::AppState,
         config_loader::{ConfigFolder, ConfigLoadError, ConfigProfile},
@@ -30,7 +29,11 @@ use crate::{
     profile_manager::ProfileManager,
 };
 
-use super::{backlog::BacklogWindow, tray::TrayItem};
+use super::{
+    backlog::BacklogWindow,
+    notification::{notify, Level},
+    tray::TrayItem,
+};
 
 #[derive(Debug)]
 pub enum AppStartError {

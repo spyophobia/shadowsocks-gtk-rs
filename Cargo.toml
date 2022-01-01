@@ -31,7 +31,7 @@ glib = "0.14.8"
 json5 = {version = "0.4.1", optional = true}
 nix = "0.23.0"
 notify-rust = "4.5.5"
-serde = {version = "1.0.130", features = ["derive"]}
+serde = {version = "1.0.132", features = ["derive"]}
 serde_yaml = "0.8.21"
 simple_logger = "1.15.0"
 strum = {version = "0.23.0", features = ["derive"]}

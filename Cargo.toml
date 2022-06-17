@@ -25,7 +25,7 @@ libappindicator = "0.7.0"
 log = "0.4.14"
 # regex = "1.5.4"
 crossbeam-channel = "0.5.1"
-ctrlc = {version = "3.2.1", features = ["termination"]}
+ctrlc = {version = "3.2.2", features = ["termination"]}
 enum-iterator = "1.1.1"
 fs2 = "0.4.3"
 glib = "0.15.11"

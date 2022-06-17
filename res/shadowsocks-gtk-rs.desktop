@@ -1,0 +1,9 @@
+[Desktop Entry]
+Categories=Network;GNOME;
+Comment=A desktop GUI frontend for shadowsocks-rust client implemented with gtk-rs.
+GenericName=Shadowsocks GUI Client
+Icon=shadowsocks-gtk-rs
+Name=Shadowsocks GTK
+Terminal=false
+Type=Application
+Exec=ssgtk

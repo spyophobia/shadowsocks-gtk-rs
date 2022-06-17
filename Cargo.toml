@@ -19,23 +19,23 @@ runtime_api = ["json5"]
 
 [dependencies]
 clap = "2.34.0"
-gtk = "0.14.3"
+gtk = "0.15.5"
 # itertools = "0.10.1"
-libappindicator = "0.6.1"
+libappindicator = "0.7.0"
 log = "0.4.14"
 # regex = "1.5.4"
 crossbeam-channel = "0.5.1"
 ctrlc = {version = "3.2.1", features = ["termination"]}
-enum-iterator = "0.7.0"
+enum-iterator = "1.1.1"
 fs2 = "0.4.3"
-glib = "0.14.8"
+glib = "0.15.11"
 json5 = {version = "0.4.1", optional = true}
-nix = "0.23.0"
+nix = "0.24.1"
 notify-rust = "4.5.5"
 serde = {version = "1.0.130", features = ["derive"]}
 serde_yaml = "0.8.21"
-simple_logger = "1.15.0"
-strum = {version = "0.23.0", features = ["derive"]}
+simple_logger = "2.1.0"
+strum = {version = "0.24.1", features = ["derive"]}
 
 [lib]
 path = "src/lib/mod.rs"

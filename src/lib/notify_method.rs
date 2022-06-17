@@ -1,20 +1,10 @@
-use enum_iterator::IntoEnumIterator;
+use enum_iterator::Sequence;
 use serde::{Deserialize, Serialize};
 use strum::{EnumString, EnumVariantNames};
 
 /// How to send the user a notification?
 #[derive(
-    Debug,
-    strum::Display,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    IntoEnumIterator,
-    EnumString,
-    EnumVariantNames,
-    Serialize,
-    Deserialize,
+    Debug, strum::Display, Clone, Copy, PartialEq, Eq, Sequence, EnumString, EnumVariantNames, Serialize, Deserialize,
 )]
 pub enum NotifyMethod {
     /// Do nothing.

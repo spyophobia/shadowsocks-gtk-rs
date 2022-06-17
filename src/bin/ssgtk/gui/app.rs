@@ -424,7 +424,7 @@ pub fn run(clap_matches: &ArgMatches) -> Result<(), AppStartError> {
     // cleanup
     // this is necessary because `app` was moved into the closure
     // and it needs to be dropped for its members to be dropped (hence cleaned up)
-    glib::source_remove(loop_action_id);
+    loop_action_id.remove();
 
     Ok(())
 }

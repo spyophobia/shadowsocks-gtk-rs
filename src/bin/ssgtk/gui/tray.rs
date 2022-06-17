@@ -3,7 +3,6 @@
 use std::{fmt, rc::Rc, sync::RwLock};
 
 use crossbeam_channel::Sender;
-use enum_iterator::IntoEnumIterator;
 use gtk::{prelude::*, Menu, MenuItem, RadioMenuItem, SeparatorMenuItem};
 use libappindicator::{AppIndicator, AppIndicatorStatus};
 use log::{debug, error, warn};
@@ -305,7 +304,7 @@ fn generate_notify_method_selector(
     events_tx: Sender<AppEvent>,
 ) -> (MenuItem, Vec<ListeningRadioMenuItem>) {
     // create radio items
-    let radios: Vec<_> = NotifyMethod::into_enum_iter()
+    let radios: Vec<_> = enum_iterator::all::<NotifyMethod>()
         .map(|method| {
             let radio_item = RadioMenuItem::with_label(&method.to_string());
             radio_item.set_sensitive(true);

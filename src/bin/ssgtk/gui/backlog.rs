@@ -33,7 +33,7 @@ impl Drop for BacklogWindow {
         trace!("BacklogWindow getting dropped.");
         // stop all scheduled functions
         for id in self.scheduled_fn_ids.drain(..) {
-            glib::source::source_remove(id);
+            id.remove();
         }
     }
 }

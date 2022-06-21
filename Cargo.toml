@@ -18,23 +18,21 @@ default = ["runtime_api"]
 runtime_api = ["json5"]
 
 [dependencies]
-clap = {version = "3.2.5", features = ["cargo", "derive", "unicode"]}
-gtk = "0.15.5"
-# itertools = "0.10.1"
-libappindicator = "0.7.0"
-log = "0.4.14"
-# regex = "1.5.4"
-crossbeam-channel = "0.5.1"
-ctrlc = {version = "3.2.1", features = ["termination"]}
-enum-iterator = "1.1.1"
+clap = {version = "3.2.6", features = ["cargo", "derive", "unicode"]}
+crossbeam-channel = "0.5.5"
+ctrlc = {version = "3.2.2", features = ["termination"]}
+enum-iterator = "1.1.2"
 fs2 = "0.4.3"
 glib = "0.15.11"
+gtk = "0.15.5"
 json5 = {version = "0.4.1", optional = true}
 lazy_static = "1.4.0"
+libappindicator = "0.7.0"
+log = "0.4.17"
 nix = "0.24.1"
-notify-rust = "4.5.5"
-serde = {version = "1.0.130", features = ["derive"]}
-serde_yaml = "0.8.21"
+notify-rust = "4.5.8"
+serde = {version = "1.0.137", features = ["derive"]}
+serde_yaml = "0.8.24"
 simple_logger = "2.1.0"
 strum = {version = "0.24.1", features = ["derive"]}
 

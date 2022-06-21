@@ -1,4 +1,3 @@
-use clap::ArgMatches;
 use gui::app;
 
 mod clap_def;
@@ -9,24 +8,22 @@ mod profile_manager;
 
 fn main() -> Result<(), String> {
     // init clap app
-    let clap_matches = clap_def::build_app().get_matches();
+    let args = clap_def::parse_and_validate();
 
     // init logger
-    logger_init(&clap_matches);
+    logger_init(args.verbose - args.quiet);
 
     // start app
-    app::run(&clap_matches).map_err(|err| err.to_string())
+    app::run(&args).map_err(|err| err.to_string())
 }
 
-fn logger_init(matches: &ArgMatches) {
+fn logger_init(relative_verbosity: i32) {
     use log::Level::*;
 
     /// 0: `Error`, 1: `Warn`, 2: `Info`, 3: `Debug`, 4: `Trace`
     pub const DEFAULT_LOG_VERBOSITY: i32 = 2;
 
-    let verbosity =
-        DEFAULT_LOG_VERBOSITY + matches.occurrences_of("verbose") as i32 - matches.occurrences_of("quiet") as i32;
-    let level = match verbosity {
+    let level = match DEFAULT_LOG_VERBOSITY + relative_verbosity {
         0 => Some(Error),
         1 => Some(Warn),
         2 => Some(Info),

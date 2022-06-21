@@ -2,52 +2,25 @@ use std::{
     io::{self, Write},
     net,
     os::unix::net::UnixStream,
-    path::{Path, PathBuf},
+    path::Path,
     time::Duration,
 };
 
+use clap::Parser;
+use clap_def::CliArgs;
 use shadowsocks_gtk_rs::runtime_api_msg::APICommand;
 
 mod clap_def;
 
 fn main() -> io::Result<()> {
     // init clap app
-    let clap_matches = clap_def::build_app().get_matches();
-
-    // get destination
-    let socket_path: PathBuf = clap_matches
-        .value_of("runtime-api-socket-path")
-        .unwrap() // clap sets default
-        .into();
-
-    // get command
-    let cmd = {
-        use APICommand::*;
-        match clap_matches.subcommand() {
-            ("backlog-show", _) => BacklogShow,
-            ("backlog-hide", _) => BacklogHide,
-            ("set-notify", Some(m)) => {
-                let method = m
-                    .value_of("notify-method")
-                    .unwrap() // required by clap
-                    .parse()
-                    .unwrap(); // clap sets possible values
-                SetNotify(method)
-            }
-
-            ("restart", _) => Restart,
-            ("switch-profile", Some(m)) => {
-                let name = m.value_of("profile-name").unwrap(); // required by clap
-                SwitchProfile(name.into())
-            }
-            ("stop", _) => Stop,
-            ("quit", _) => Quit,
-            _ => unreachable!("all possible subcommands covered"),
-        }
-    };
+    let CliArgs {
+        runtime_api_socket_path,
+        sub_cmd,
+    } = CliArgs::parse();
 
     // send
-    let send_res = send_cmd(socket_path, cmd);
+    let send_res = send_cmd(runtime_api_socket_path, sub_cmd.into());
     match &send_res {
         Ok(_) => println!("Command sent successfully"),
         Err(_) => println!("Failed to send command"),

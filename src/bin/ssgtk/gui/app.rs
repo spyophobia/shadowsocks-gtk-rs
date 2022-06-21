@@ -3,13 +3,12 @@
 
 use std::{
     fmt,
-    path::{Path, PathBuf},
+    path::PathBuf,
     process,
     sync::{Arc, Mutex, RwLock},
     time::Duration,
 };
 
-use clap::ArgMatches;
 use crossbeam_channel::{unbounded as unbounded_channel, Receiver, Sender};
 use gtk::prelude::*;
 use log::{debug, error, info, trace, warn};
@@ -21,6 +20,7 @@ use shadowsocks_gtk_rs::{notify_method::NotifyMethod, util};
 #[cfg(feature = "runtime_api")]
 use crate::io::runtime_api::APIListener;
 use crate::{
+    clap_def::CliArgs,
     event::AppEvent,
     io::{
         app_state::AppState,
@@ -110,23 +110,30 @@ struct GTKApp {
 
 impl GTKApp {
     /// Construct the application.
-    fn new(clap_matches: &ArgMatches) -> Result<Self, AppStartError> {
+    fn new(args: &CliArgs) -> Result<Self, AppStartError> {
+        let CliArgs {
+            profiles_dir,
+            app_state_path,
+            tray_icon_filename,
+            icon_theme_dir,
+            verbose: _,
+            quiet: _,
+            #[cfg(feature = "runtime_api")]
+            runtime_api_socket_path,
+        } = args;
+
         // init GTK
         gtk::init()?;
 
         // load profiles
-        let config_folder = {
-            let dir = clap_matches.value_of("profiles-dir").unwrap(); // clap sets default
-            ConfigFolder::from_path_recurse(dir)?
-        };
+        let config_folder = ConfigFolder::from_path_recurse(profiles_dir)?;
         debug!(
             "Successfully loaded {} profiles in total",
             config_folder.profile_count()
         );
 
         // load app state
-        let app_state_path = clap_matches.value_of("app-state-path").unwrap().into(); // clap sets default
-        let previous_state = AppState::from_file(&app_state_path).unwrap(); // Ok guaranteed by clap validator
+        let previous_state = AppState::from_file(app_state_path).unwrap(); // Ok guaranteed by clap validator
 
         // resume core
         let (events_tx, events_rx) = unbounded_channel();
@@ -138,29 +145,16 @@ impl GTKApp {
         // start runtime API
         #[cfg(feature = "runtime_api")]
         let (api_listener, api_cmds_tx, api_cmds_rx) = {
-            let socket_path = clap_matches.value_of("runtime-api-socket-path").unwrap(); // clap sets default
             let (tx, rx) = unbounded_channel();
-            let listener = APIListener::start(socket_path, tx.clone())?;
+            let listener = APIListener::start(runtime_api_socket_path, tx.clone())?;
             (listener, tx, rx)
         };
 
         // build permanent GUI components
         let tray = {
-            let icon_name = clap_matches.value_of("tray-icon-filename").unwrap(); // clap sets default
-            let theme_dir = clap_matches.value_of("icon-theme-dir").and_then(
-                // AppIndicator requires an absolute path for this
-                |p| match Path::new(p).canonicalize() {
-                    Ok(abs) => abs.to_str().map(|s| s.to_string()),
-                    Err(err) => {
-                        warn!("Cannot resolve the specified icon theme directory: {}", err);
-                        warn!("Reverting back to system setting - you may get a blank icon");
-                        None
-                    }
-                },
-            );
             let mut tray = TrayItem::build_and_show(
-                &icon_name,
-                theme_dir.as_deref(),
+                &tray_icon_filename,
+                icon_theme_dir.as_deref(),
                 events_tx.clone(),
                 &config_folder,
                 previous_state.notify_method,
@@ -174,7 +168,7 @@ impl GTKApp {
         };
 
         Ok(Self {
-            app_state_path,
+            app_state_path: app_state_path.clone(),
             config_folder,
             profile_manager: pm_arc,
             events_tx,
@@ -377,9 +371,9 @@ impl GTKApp {
 }
 
 /// Initialise all components and start the GTK main loop.
-pub fn run(clap_matches: &ArgMatches) -> Result<(), AppStartError> {
+pub fn run(args: &CliArgs) -> Result<(), AppStartError> {
     // init app
-    let mut app = GTKApp::new(clap_matches)?;
+    let mut app = GTKApp::new(args)?;
 
     // catch signals for soft shutdown
     let shutdown_trigger_count = Arc::new(Mutex::new(0usize));

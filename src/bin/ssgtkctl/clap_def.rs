@@ -2,85 +2,89 @@
 
 use std::{env, path::PathBuf};
 
-use clap::{crate_authors, crate_version, App, Arg, SubCommand};
-use shadowsocks_gtk_rs::notify_method::NotifyMethod;
-use strum::VariantNames;
+use clap::{Parser, Subcommand};
+use lazy_static::lazy_static;
+use shadowsocks_gtk_rs::{notify_method::NotifyMethod, runtime_api_msg::APICommand};
 
-/// Build a clap app. Only call once.
-pub fn build_app() -> App<'static, 'static> {
-    // app
-    let mut app = App::new("ssgtkctl")
-        .version(crate_version!())
-        .author(crate_authors!())
-        .about("A delegate binary that sends commands to the runtime API for your convenience.")
-        .settings({
-            use clap::AppSettings::*;
-            &[
-                AllowNegativeNumbers,
-                ColoredHelp,
-                DisableHelpSubcommand,
-                InferSubcommands,
-                SubcommandRequiredElseHelp,
-            ]
-        });
+lazy_static! {
+    static ref RUNTIME_API_SOCKET_PATH_DEFAULT: PathBuf =
+        PathBuf::from(env::var("XDG_RUNTIME_DIR").unwrap_or("/tmp".into())).join("shadowsocks-gtk-rs.sock");
+    static ref RUNTIME_API_SOCKET_PATH_DEFAULT_STR: String = RUNTIME_API_SOCKET_PATH_DEFAULT
+        .to_str()
+        .expect("default runtime-api-socket-path not UTF-8")
+        .into();
+}
 
-    // args
-    let arg_runtime_api_socket_path = {
-        let default_val: &'static str = {
-            let mut path = PathBuf::from(env::var("XDG_RUNTIME_DIR").unwrap_or("/tmp".into()));
-            path.push("shadowsocks-gtk-rs.sock");
-            Box::leak(path.to_str().expect("default runtime-api-socket-path not UTF-8").into())
-        };
-        Arg::with_name("runtime-api-socket-path")
-            .short("a")
-            .long("api-socket")
-            .takes_value(true)
-            .default_value(default_val)
-            .help(
-                "Send command to the runtime API listener at a custom socket path. \
-                Useful if you want to control multiple instances.",
-            )
-    };
+#[derive(Debug, Clone, Parser)]
+#[clap(
+    name = "ssgtkctl",
+    author,
+    version,
+    about = "A delegate binary for ssgtk that sends commands to the runtime API for your convenience.",
+    disable_help_subcommand = true,
+    infer_subcommands = true,
+    subcommand_required = true
+)]
+pub struct CliArgs {
+    /// Send command to the runtime API listener at a custom socket path.
+    ///
+    /// Useful if you want to control multiple instances.
+    #[clap(short = 'a', long = "api-socket", value_name = "PATH", default_value = &RUNTIME_API_SOCKET_PATH_DEFAULT_STR)]
+    pub runtime_api_socket_path: PathBuf,
 
-    app = app.arg(arg_runtime_api_socket_path);
+    #[clap(subcommand)]
+    pub sub_cmd: SubCmd,
+}
 
-    // subcommands
-    let cmd_backlog_show =
-        SubCommand::with_name("backlog-show").about("Show the backlog window or bring it to foreground");
-    let cmd_backlog_hide = SubCommand::with_name("backlog-hide").about("Hide the backlog window if opened");
-    let cmd_set_notify = SubCommand::with_name("set-notify")
-        .arg({
-            Arg::with_name("notify-method")
-                .required(true)
-                .index(1)
-                .takes_value(true)
-                .possible_values(NotifyMethod::VARIANTS)
-                .help("The notification method to use")
-        })
-        .about("Use a particular method for all future notifications");
+#[derive(Debug, Clone, Subcommand)]
+pub enum SubCmd {
+    /// Show the backlog window or bring it to foreground.
+    #[clap(name = "backlog-show")]
+    BacklogShow,
 
-    let cmd_restart = SubCommand::with_name("restart").about("Restart the currently running sslocal instance");
-    let cmd_switch_profile = SubCommand::with_name("switch-profile")
-        .arg(
-            Arg::with_name("profile-name")
-                .required(true)
-                .index(1)
-                .takes_value(true)
-                .help("The display name of the profile to switch to (CASE SENSITIVE)"),
-        )
-        .about("Switch to a new profile by starting a new sslocal instance");
-    let cmd_stop = SubCommand::with_name("stop").about("Stop the currently running sslocal instance");
-    let cmd_quit = SubCommand::with_name("quit").about("Quit the application");
+    /// Hide the backlog window if opened.
+    #[clap(name = "backlog-hide")]
+    BacklogHide,
 
-    app = app.subcommands(vec![
-        cmd_backlog_show,
-        cmd_backlog_hide,
-        cmd_set_notify,
-        cmd_restart,
-        cmd_switch_profile,
-        cmd_stop,
-        cmd_quit,
-    ]);
+    /// Use a particular method for all future notifications.
+    #[clap(name = "set-notify")]
+    SetNotify {
+        /// The notification method to use.
+        #[clap(index = 1, value_name = "METHOD", value_enum)]
+        notify_method: NotifyMethod,
+    },
 
-    app
+    /// Restart the currently running sslocal instance.
+    #[clap(name = "restart")]
+    Restart,
+
+    /// Switch to a new profile by starting a new sslocal instance.
+    #[clap(name = "switch-profile")]
+    SwitchProfile {
+        /// The display name of the profile to switch to (CASE SENSITIVE)
+        #[clap(index = 1, value_name = "NAME")]
+        profile_name: String,
+    },
+
+    /// Stop the currently running sslocal instance.
+    #[clap(name = "stop")]
+    Stop,
+
+    /// Quit the application.
+    #[clap(name = "quit")]
+    Quit,
+}
+
+impl From<SubCmd> for APICommand {
+    fn from(cmd: SubCmd) -> Self {
+        match cmd {
+            SubCmd::BacklogShow => APICommand::BacklogShow,
+            SubCmd::BacklogHide => APICommand::BacklogHide,
+            SubCmd::SetNotify { notify_method } => APICommand::SetNotify(notify_method),
+            SubCmd::Restart => APICommand::Restart,
+            SubCmd::SwitchProfile { profile_name } => APICommand::SwitchProfile(profile_name),
+            SubCmd::Stop => APICommand::Stop,
+            SubCmd::Quit => APICommand::Quit,
+        }
+    }
 }

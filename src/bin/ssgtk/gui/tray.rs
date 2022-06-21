@@ -1,6 +1,6 @@
 //! This module contains code that creates a tray item.
 
-use std::{fmt, rc::Rc, sync::RwLock};
+use std::{fmt, path::Path, rc::Rc, sync::RwLock};
 
 use crossbeam_channel::Sender;
 use gtk::{prelude::*, Menu, MenuItem, RadioMenuItem, SeparatorMenuItem};
@@ -53,7 +53,7 @@ impl TrayItem {
     /// Should only be called once.
     pub fn build_and_show(
         icon_name: &str,
-        icon_theme_dir: Option<&str>,
+        icon_theme_dir: Option<impl AsRef<Path>>,
         events_tx: Sender<AppEvent>,
         config_folder: &ConfigFolder,
         notify_method: NotifyMethod,
@@ -78,7 +78,10 @@ impl TrayItem {
         let mut tray = Self {
             ai: match icon_theme_dir {
                 // BUG: For some reason the title is not set?
-                Some(p) => AppIndicator::with_path(TRAY_TITLE, icon_name, p),
+                Some(dir) => {
+                    let dir_str = dir.as_ref().to_str().unwrap(); // UTF-8 guaranteed by clap validator.
+                    AppIndicator::with_path(TRAY_TITLE, icon_name, dir_str)
+                }
                 None => AppIndicator::new(TRAY_TITLE, icon_name),
             },
             menu: Menu::new(),

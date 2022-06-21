@@ -1,6 +1,6 @@
 ## Stay Safe!
 
-As you may know, Shadowsocks is an ecosystem of software that is adversarial in nature. You might even say it's political in nature. It was built to fight against one opponent and one opponent only (a very powerful one, mind you) - People's Republic of China's great censoring machine. This opponent would go to great lengths to make sure that the values advocated by Shadowsocks, namely freedom of information and freedom speech, are completely snuffed and buried, using methods including but not limited to:
+As you may know, Shadowsocks is an ecosystem of software that is adversarial in nature. You might even say it's political in nature. It was built to fight against one opponent and one opponent only (a very powerful one, mind you) - People's Republic of China's great censoring machine. This opponent would go to great lengths to make sure that the values advocated by Shadowsocks, namely freedom of information and freedom of speech, are completely snuffed and buried, using methods including but not limited to:
 
  - [forced censorship of any mention of Shadowsocks anywhere it can](https://web.archive.org/web/20210307021605/https://www.baidu.com/s?ie=UTF-8&wd=shadowsocks);
  - [develop sophisticated, specifically-targeted systems (active & passive) to detect and ban Shadowsocks traffic](https://web.archive.org/web/20201204181712/https://blog.torproject.org/learning-more-about-gfws-active-probing-system);
@@ -14,8 +14,10 @@ GPL, the license used by this project, is a strong "copyleft" license, meaning t
 That being said, I would like to believe that us developers and users of Shadowsocks are not so easily intimidated. To quote Benjamin Franklin:
 > ***Those who would give up essential liberty, to purchase a little temporary safety, deserve neither.***
 
-I am personally determined to stay in and carry on this fight. Will you too?
+**Edit 2022-06-21**: Funnily, six months after writing this, you all saw what happened to Shanghai in April and May of 2022. At no point in history since The Cultural Revolution has the PRC government ever fallen so deeply into a state of despotism. I literally cannot ask for a better example to demonstrate the validity and importance of this quote.
+
+Despite the uphill battle we are faced with, I am personally determined to stay in and carry on this fight against government overreach and oppression. Will you too?
 
  ---
 
- Spyophobia, written 2021-10-12, edited 2021-10-27
+ Spyophobia, written 2021-10-12, edited 2022-06-21

@@ -28,5 +28,5 @@
     "TEMP",
     "TODO",
   ],
-  "todo-tree.regex.regex": "((//|#|<!--|;|/\\*|^|^[ \\t]*(-|\\d+.))\\s*($TAGS)|^\\s*- \\[ \\]|(todo|unimplemented)!\\(.*\\))",
+  "todo-tree.regex.regex": "((//|#|<!--|;|/\\*|^|^[ \\t]*(-|\\d+.))\\s*($TAGS)(?=:|\\s)|^\\s*- \\[ \\]|(todo|unimplemented)!\\(.*\\))",
 }

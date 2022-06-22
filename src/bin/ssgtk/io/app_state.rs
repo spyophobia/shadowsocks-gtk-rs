@@ -53,18 +53,12 @@ impl Default for AppState {
 }
 
 impl AppState {
-    pub fn from_file<P>(path: P) -> Result<Self, AppStateError>
-    where
-        P: AsRef<Path>,
-    {
+    pub fn from_file(path: impl AsRef<Path>) -> Result<Self, AppStateError> {
         let content = fs::read_to_string(path)?;
         let state = serde_yaml::from_str(&content)?;
         Ok(state)
     }
-    pub fn write_to_file<P>(&self, path: P) -> Result<(), AppStateError>
-    where
-        P: AsRef<Path>,
-    {
+    pub fn write_to_file(&self, path: impl AsRef<Path>) -> Result<(), AppStateError> {
         let content = serde_yaml::to_string(self)?;
         fs::write(path, content)?;
         Ok(())

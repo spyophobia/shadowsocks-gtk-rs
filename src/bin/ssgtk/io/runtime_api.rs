@@ -105,10 +105,7 @@ impl Drop for APIListener {
 }
 
 impl APIListener {
-    pub fn start<P>(bind_addr: P, cmds_tx: Sender<APICommand>) -> io::Result<Self>
-    where
-        P: AsRef<Path>,
-    {
+    pub fn start(bind_addr: impl AsRef<Path>, cmds_tx: Sender<APICommand>) -> io::Result<Self> {
         // try to lock lock file
         let lock_file_path = {
             let mut path = bind_addr.as_ref().to_path_buf();

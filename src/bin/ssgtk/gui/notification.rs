@@ -35,11 +35,7 @@ impl Into<Urgency> for Level {
 }
 
 /// Send a simple text notification, using the specified method.
-pub fn notify<S0, S1>(method: NotifyMethod, level: Level, text_1: S0, text_2: S1)
-where
-    S0: AsRef<str>,
-    S1: AsRef<str>,
-{
+pub fn notify(method: NotifyMethod, level: Level, text_1: impl AsRef<str>, text_2: impl AsRef<str>) {
     use NotifyMethod::*;
     match method {
         Disable => {} // do nothing

@@ -103,11 +103,7 @@ impl ConfigProfile {
     ///
     /// If `stdout` or `stderr` is `None`, the corresponding output
     /// is redirected to`Stdio::null()` (discarded) by default.
-    pub fn run_sslocal<O, E>(&self, stdout: Option<O>, stderr: Option<E>) -> io::Result<Child>
-    where
-        O: Into<Stdio>,
-        E: Into<Stdio>,
-    {
+    pub fn run_sslocal(&self, stdout: Option<impl Into<Stdio>>, stderr: Option<impl Into<Stdio>>) -> io::Result<Child> {
         let local_addr_args = self.local_addr.as_ref().map_or(vec![], |(a, p)| {
             let addr = match a {
                 IpAddr::V4(v4) => format!("{}:{}", v4, p),
@@ -217,10 +213,7 @@ impl ConfigFolder {
     ///
     /// If a call to this function with the user-specified base path fails,
     /// then run the program as if there are no existing configs.
-    pub fn from_path_recurse<P>(path: P) -> Result<Self, ConfigLoadError>
-    where
-        P: AsRef<Path>,
-    {
+    pub fn from_path_recurse(path: impl AsRef<Path>) -> Result<Self, ConfigLoadError> {
         let path = path.as_ref().canonicalize()?;
         let full_path_str = path.to_str().ok_or(io::Error::new(
             io::ErrorKind::InvalidInput,
@@ -339,10 +332,7 @@ impl ConfigFolder {
 
     /// Recursively searches all the nested profiles within this `ConfigFolder`
     /// for a `ConfigProfile` with a matching name.
-    pub fn lookup<S>(&self, name: S) -> Option<&ConfigProfile>
-    where
-        S: AsRef<str>,
-    {
+    pub fn lookup(&self, name: impl AsRef<str>) -> Option<&ConfigProfile> {
         use ConfigFolder::*;
         match self {
             Profile(p) if p.display_name == name.as_ref() => Some(p),

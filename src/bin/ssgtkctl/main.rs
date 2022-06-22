@@ -28,10 +28,7 @@ fn main() -> io::Result<()> {
     send_res
 }
 
-fn send_cmd<P>(destination: P, cmd: APICommand) -> io::Result<()>
-where
-    P: AsRef<Path>,
-{
+fn send_cmd(destination: impl AsRef<Path>, cmd: APICommand) -> io::Result<()> {
     let mut socket = UnixStream::connect(destination)?;
     socket.set_write_timeout(Some(Duration::from_secs(3)))?;
     socket.write_all(

@@ -3,6 +3,7 @@
 use std::{fmt, path::Path, rc::Rc, sync::RwLock};
 
 use crossbeam_channel::Sender;
+use derivative::Derivative;
 use gtk::{prelude::*, Menu, MenuItem, RadioMenuItem, SeparatorMenuItem};
 use libappindicator::{AppIndicator, AppIndicatorStatus};
 use log::{debug, error, warn};
@@ -27,7 +28,10 @@ enum ConfigMenuItem {
     Group(MenuItem),
 }
 
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct TrayItem {
+    #[derivative(Debug(format_with = "ai_omit"))]
     ai: AppIndicator,
     menu: Menu,
     /// The `ListeningRadioMenuItem` for the stop button.
@@ -38,13 +42,8 @@ pub struct TrayItem {
     notify_method_items: Vec<ListeningRadioMenuItem>,
 }
 
-impl fmt::Debug for TrayItem {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("TrayItem")
-            .field("ai", &"*AppIndicator info omitted*")
-            .field("menu", &self.menu)
-            .finish()
-    }
+fn ai_omit(_: &AppIndicator, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    write!(fmt, "*AppIndicator info omitted*")
 }
 
 impl TrayItem {

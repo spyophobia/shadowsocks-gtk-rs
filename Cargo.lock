@@ -1456,6 +1456,7 @@ dependencies = [
  "clap",
  "crossbeam-channel",
  "ctrlc",
+ "derivative",
  "enum-iterator",
  "fs2",
  "glib",

@@ -10,6 +10,7 @@ use std::{
     process::{Child, Command, Stdio},
 };
 
+use derivative::Derivative;
 use log::{debug, error, warn};
 use serde::{Deserialize, Serialize};
 
@@ -22,7 +23,8 @@ const LOAD_IGNORE_FILE_NAME: &str = ".ss_ignore";
 /// this directory is a connection profile.
 const PROFILE_DEF_FILE_NAME: &str = "profile.yaml";
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Derivative, Clone, Serialize, Deserialize)]
+#[derivative(Debug)]
 struct ConfigProfileSerde {
     display_name: Option<String>,
     pwd: Option<PathBuf>,
@@ -30,27 +32,12 @@ struct ConfigProfileSerde {
 
     local_addr: Option<(IpAddr, u16)>,
     server_addr: Option<(String, u16)>,
+    #[derivative(Debug(format_with = "password_omit"))]
     password: Option<String>,
     encrypt_method: Option<String>,
 
     config_path: Option<PathBuf>,
     extra_args: Option<Vec<String>>,
-}
-
-impl fmt::Debug for ConfigProfileSerde {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ConfigProfileSerde")
-            .field("display_name", &self.display_name)
-            .field("pwd", &self.pwd)
-            .field("bin_path", &self.bin_path)
-            .field("local_addr", &self.local_addr)
-            .field("server_addr", &self.server_addr)
-            .field("password", &"--hidden--")
-            .field("encrypt_method", &self.encrypt_method)
-            .field("config_path", &self.config_path)
-            .field("extra_args", &self.extra_args)
-            .finish()
-    }
 }
 
 impl TryInto<ConfigProfile> for ConfigProfileSerde {
@@ -87,7 +74,8 @@ impl TryInto<ConfigProfile> for ConfigProfileSerde {
     }
 }
 
-#[derive(Clone)]
+#[derive(Derivative, Clone)]
+#[derivative(Debug)]
 pub struct ConfigProfile {
     // mandatory fields
     pub display_name: String,
@@ -97,6 +85,7 @@ pub struct ConfigProfile {
     // simple config fields
     local_addr: Option<(IpAddr, u16)>,
     server_addr: Option<(String, u16)>,
+    #[derivative(Debug(format_with = "password_omit"))]
     password: Option<String>,
     encrypt_method: Option<String>,
 
@@ -105,20 +94,8 @@ pub struct ConfigProfile {
     extra_args: Option<Vec<String>>,
 }
 
-impl fmt::Debug for ConfigProfile {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ConfigProfile")
-            .field("display_name", &self.display_name)
-            .field("pwd", &self.pwd)
-            .field("bin_path", &self.bin_path)
-            .field("local_addr", &self.local_addr)
-            .field("server_addr", &self.server_addr)
-            .field("password", &"--hidden--")
-            .field("encrypt_method", &self.encrypt_method)
-            .field("config_path", &self.config_path)
-            .field("extra_args", &self.extra_args)
-            .finish()
-    }
+fn password_omit(_: &Option<String>, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    write!(fmt, "*hidden*")
 }
 
 impl ConfigProfile {

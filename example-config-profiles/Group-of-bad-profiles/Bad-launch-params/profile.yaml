@@ -1,10 +1,10 @@
 ---
 # this profile is well-defined, however the launch parameters
-# it provides to `sslocal` are insufficient, therefore
+# it provides to `sslocal` are erroneous, therefore
 # the profile will be loaded, but `sslocal` will fail to launch
 
 display_name: "Does not launch"
-# we do not provide `sslocal` with sufficient launch parameters
+# we provide `sslocal` with bad launch parameters
 #config_path: "./ss.json"
-#extra_args:
-#  - "--tcp-fast-open"
+extra_args:
+  - "--bad-args"

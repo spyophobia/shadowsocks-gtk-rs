@@ -2,7 +2,7 @@
 //! and holds all the GUI components.
 
 use std::{
-    fmt,
+    fmt, io,
     path::PathBuf,
     process,
     sync::{Arc, Mutex, RwLock},
@@ -41,11 +41,11 @@ pub enum AppStartError {
     CtrlCError(ctrlc::Error),
     GLibBoolError(glib::BoolError),
     GLibError(glib::Error),
-    IOError(std::io::Error),
+    IOError(io::Error),
 }
 
 impl fmt::Display for AppStartError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use AppStartError::*;
         match self {
             ConfigLoadError(e) => write!(f, "AppStartError-ConfigLoadError: {}", e),
@@ -77,8 +77,8 @@ impl From<glib::Error> for AppStartError {
         Self::GLibError(err)
     }
 }
-impl From<std::io::Error> for AppStartError {
-    fn from(err: std::io::Error) -> Self {
+impl From<io::Error> for AppStartError {
+    fn from(err: io::Error) -> Self {
         Self::IOError(err)
     }
 }

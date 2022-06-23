@@ -16,7 +16,7 @@ pub struct LeakyBucketOverflowed {
 }
 
 impl fmt::Display for LeakyBucketOverflowed {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "NaiveLeakyBucket overflowed: more than {} times within {:?}",

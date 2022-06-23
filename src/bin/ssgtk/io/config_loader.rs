@@ -173,7 +173,7 @@ pub enum ConfigLoadError {
 }
 
 impl fmt::Display for ConfigLoadError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use ConfigLoadError::*;
 
         match self {
@@ -198,11 +198,14 @@ impl From<io::Error> for ConfigLoadError {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Derivative, Clone)]
+#[derivative(Debug)]
 pub enum ConfigFolder {
     /// A single `sslocal` connection profile.
+    #[derivative(Debug = "transparent")]
     Profile(ConfigProfile),
     /// A group containing multiple profiles and/or subgroups.
+    #[derivative(Debug = "transparent")]
     Group(ConfigGroup),
 }
 
@@ -225,12 +228,7 @@ impl ConfigFolder {
             return Err(ConfigLoadError::NotDirectory(full_path_str.into()));
         }
         // make sure directory doesn't contain the ignore file
-        let ignore_file_path = {
-            let mut p = path.clone();
-            p.push(LOAD_IGNORE_FILE_NAME);
-            p
-        };
-        if ignore_file_path.is_file() {
+        if path.join(LOAD_IGNORE_FILE_NAME).is_file() {
             return Err(ConfigLoadError::Ignored);
         }
 
@@ -243,11 +241,7 @@ impl ConfigFolder {
             .to_string();
 
         // if directory contains the profile definition file, then consider it a profile
-        let profile_yaml_path = {
-            let mut p = path.clone();
-            p.push(PROFILE_DEF_FILE_NAME);
-            p
-        };
+        let profile_yaml_path = path.join(PROFILE_DEF_FILE_NAME);
         if profile_yaml_path.is_file() {
             let content = read_to_string(profile_yaml_path)?;
             let mut profile: ConfigProfileSerde = serde_yaml::from_str(&content)?;
@@ -255,12 +249,8 @@ impl ConfigFolder {
             profile.display_name.get_or_insert(display_name);
             // set pwd correctly
             profile.pwd = Some(profile.pwd.map_or(
-                path.clone(), // use current profile path as default pwd
-                |p| {
-                    let mut pwd = path.clone(); // use current profile path as base
-                    pwd.push(p); // this handles both relative and absolute path
-                    pwd
-                },
+                path.clone(),     // use current profile path as default pwd
+                |p| path.join(p), // this handles both relative and absolute path
             ));
             // set default binary path
             profile.bin_path.get_or_insert(SSLOCAL_DEFAULT_PATH.into());

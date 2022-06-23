@@ -46,7 +46,7 @@ struct ActiveSSInstance {
 }
 
 impl fmt::Display for ActiveSSInstance {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "(PID: {}, Profile: {})", self.sslocal_pid, self.profile.display_name)
     }
 }
@@ -306,14 +306,15 @@ impl ProfileManager {
         *util::rwlock_write(&self.active_instance) = Some(new_instance);
 
         // monitor
-        self.set_on_fail(exit_alert_rx)?;
+        self.handle_fail(exit_alert_rx)?;
 
         Ok(())
     }
 
     /// Starts a monitoring thread that waits for the underlying `sslocal` instance
-    /// to fail, when it will attempt to perform the action specified by `Self::on_fail`.
-    pub fn set_on_fail(&mut self, listener: Receiver<ExitStatus>) -> io::Result<()> {
+    /// to fail, when it will attempt to perform a restart as specified by
+    /// `Self::restart_limit`.
+    pub fn handle_fail(&mut self, listener: Receiver<ExitStatus>) -> io::Result<()> {
         // variables that need to be moved into thread
         let restart_limit = self.restart_limit;
         let events_tx = self.events_tx.clone();

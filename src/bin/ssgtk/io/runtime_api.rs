@@ -28,11 +28,12 @@ enum CmdError {
 }
 
 impl fmt::Display for CmdError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use CmdError::*;
         match self {
-            CmdError::IOError(e) => write!(f, "CmdError-IOError: {}", e),
-            CmdError::ParseError(e) => write!(f, "CmdError-ParseError: {}", e),
-            CmdError::SendError => write!(f, "CmdError-SendError: Command receiver has hung up"),
+            IOError(e) => write!(f, "CmdError-IOError: {}", e),
+            ParseError(e) => write!(f, "CmdError-ParseError: {}", e),
+            SendError => write!(f, "CmdError-SendError: Command receiver has hung up"),
         }
     }
 }

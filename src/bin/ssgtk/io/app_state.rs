@@ -13,7 +13,7 @@ pub enum AppStateError {
 }
 
 impl fmt::Display for AppStateError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use AppStateError::*;
         match self {
             ParseError(e) => write!(f, "AppStateError-ParseError: {}", e),

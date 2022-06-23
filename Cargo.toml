@@ -11,7 +11,7 @@ license = "GPL-3.0-or-later"
 name = "shadowsocks-gtk-rs"
 readme = "README.md"
 repository = "https://github.com/spyophobia/shadowsocks-gtk-rs"
-version = "0.3.0"
+version = "0.3.1"
 
 [features]
 default = ["runtime_api"]

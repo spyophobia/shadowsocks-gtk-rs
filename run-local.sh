@@ -4,7 +4,14 @@ set -e # exit on error
 cd $(dirname "$0") # enter project root dir
 mkdir -p "./local-run" # create temp directory
 
-cargo run --release -- \
+# optionally run in release mode
+if [[ "$1" == "release" ]]; then
+  MODE_FLAG="--release"
+  shift 1
+else
+  MODE_FLAG=""
+fi
+cargo run ${MODE_FLAG} -- \
   -v \
   --profiles-dir "./example-config-profiles" \
   --app-state "./local-run/app-state.yaml" \

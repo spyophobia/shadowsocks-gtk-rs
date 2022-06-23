@@ -11,7 +11,7 @@ fn main() -> Result<(), String> {
     let args = clap_def::parse_and_validate();
 
     // init logger
-    logger_init(args.verbose - args.quiet);
+    logger_init(args.verbose as i32 - args.quiet as i32);
 
     // start app
     app::run(&args).map_err(|err| err.to_string())

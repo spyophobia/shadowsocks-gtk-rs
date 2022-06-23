@@ -58,12 +58,12 @@ pub struct CliArgs {
     /// Increase the verbosity level of output.
     /// This is a repeatable flag.
     #[clap(short = 'v', long = "verbose", action = ArgAction::Count)]
-    pub verbose: i32,
+    pub verbose: u8,
 
     /// Decrease the verbosity level of output.
     /// This is a repeatable flag.
     #[clap(short = 'q', long = "quiet", action = ArgAction::Count)]
-    pub quiet: i32,
+    pub quiet: u8,
 
     #[cfg(feature = "runtime_api")]
     /// Bind the runtime API listener to a custom socket.

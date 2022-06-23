@@ -38,7 +38,7 @@ fn main() -> io::Result<()> {
     let send_res = send_cmd(runtime_api_socket_path, sub_cmd.into());
     match &send_res {
         Ok(_) => println!("Command sent successfully"),
-        Err(err) => println!("Failed to send command: {}", err),
+        Err(_) => println!("Failed to send command"),
     }
     send_res
 }

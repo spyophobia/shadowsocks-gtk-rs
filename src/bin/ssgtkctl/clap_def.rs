@@ -22,8 +22,7 @@ lazy_static! {
     version,
     about = "A delegate binary for ssgtk that sends commands to the runtime API for your convenience.",
     disable_help_subcommand = true,
-    infer_subcommands = true,
-    subcommand_required = true
+    infer_subcommands = true
 )]
 pub struct CliArgs {
     /// Send command to the runtime API listener at a custom socket path.
@@ -32,8 +31,12 @@ pub struct CliArgs {
     #[clap(short = 'a', long = "api-socket", value_name = "PATH", default_value = &RUNTIME_API_SOCKET_PATH_DEFAULT_STR)]
     pub runtime_api_socket_path: PathBuf,
 
+    /// Print examples of how to interface with the Unix socket directly.
+    #[clap(long = "print-socket-examples")]
+    pub print_socket_examples: bool,
+
     #[clap(subcommand)]
-    pub sub_cmd: SubCmd,
+    pub sub_cmd: Option<SubCmd>,
 }
 
 #[derive(Debug, Clone, Subcommand)]

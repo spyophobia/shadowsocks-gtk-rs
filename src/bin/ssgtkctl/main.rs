@@ -6,9 +6,9 @@ use std::{
     time::Duration,
 };
 
-use clap::Parser;
+use clap::{IntoApp, Parser};
 use clap_def::CliArgs;
-use shadowsocks_gtk_rs::runtime_api_msg::APICommand;
+use shadowsocks_gtk_rs::{notify_method::NotifyMethod, runtime_api_msg::APICommand};
 
 mod clap_def;
 
@@ -17,15 +17,60 @@ fn main() -> io::Result<()> {
     let CliArgs {
         runtime_api_socket_path,
         sub_cmd,
+        print_socket_examples,
     } = CliArgs::parse();
+
+    // print examples
+    if print_socket_examples {
+        print_socket_egs();
+        return Ok(());
+    }
+
+    // subcommand required past this point
+    let sub_cmd = match sub_cmd {
+        Some(cmd) => cmd,
+        None => CliArgs::command()
+            .error(clap::ErrorKind::MissingSubcommand, "a subcommand is required")
+            .exit(),
+    };
 
     // send
     let send_res = send_cmd(runtime_api_socket_path, sub_cmd.into());
     match &send_res {
         Ok(_) => println!("Command sent successfully"),
-        Err(_) => println!("Failed to send command"),
+        Err(err) => println!("Failed to send command: {}", err),
     }
     send_res
+}
+
+fn print_socket_egs() {
+    use APICommand::*;
+    let egs = vec![
+        BacklogShow,
+        BacklogHide,
+        SetNotify(NotifyMethod::Toast),
+        Restart,
+        SwitchProfile("Example Profile".into()),
+        Stop,
+        Quit,
+    ];
+    println!("{}", "-".repeat(50));
+    println!("Here are some of the commands you can issue (CASE SENSITIVE):");
+    for cmd in egs.into_iter() {
+        let cmd_str = json5::to_string(&cmd).expect("Manually created, shouldn't error");
+        println!("\t`echo \'{}\' | nc -U /path/to/shadowsocks-gtk-rs.sock`", cmd_str);
+    }
+    println!(
+        "Note 0: you likely need the BSD variant of netcat to be able to connect \
+        to Unix sockets (see https://unix.stackexchange.com/a/26781/375550)\n\
+        Note 1: due to technical limitations and my laziness (mainly the latter) \
+        the JSON5 command string must be a single line"
+    );
+    println!(
+        "For the default socket path and how to manually set a different one, see\n\
+        \t`ssgtk --help` and `ssgtkctl --help`"
+    );
+    println!("{}", "-".repeat(50));
 }
 
 fn send_cmd(destination: impl AsRef<Path>, cmd: APICommand) -> io::Result<()> {

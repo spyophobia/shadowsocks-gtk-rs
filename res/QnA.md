@@ -1,5 +1,17 @@
 # Common Questions and Answers
 
+- [Common Questions and Answers](#common-questions-and-answers)
+  - [My tray icon is blank.](#my-tray-icon-is-blank)
+  - [How to customise configuration?](#how-to-customise-configuration)
+    - [Basic, single-profile config](#basic-single-profile-config)
+    - [Grouped multi-profile config](#grouped-multi-profile-config)
+    - [Other miscellaneous details](#other-miscellaneous-details)
+  - [Can I bind a shortcut to \<some action>?](#can-i-bind-a-shortcut-to-some-action)
+  - [Why did you pick GTK instead of QT?](#why-did-you-pick-gtk-instead-of-qt)
+  - [Why aren't you using GTK4?](#why-arent-you-using-gtk4)
+  - [Why target `sslocal` command line API?](#why-target-sslocal-command-line-api)
+  - [Why do you only use English?](#why-do-you-only-use-english)
+
 ## My tray icon is blank.
 
 This means your system is missing icon files. Usually this happens if you installed using `cargo-install`

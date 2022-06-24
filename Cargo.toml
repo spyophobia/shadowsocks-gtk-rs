@@ -18,24 +18,24 @@ default = ["runtime_api"]
 runtime_api = ["json5"]
 
 [dependencies]
-clap = {version = "3.2.6", features = ["cargo", "derive", "unicode"]}
+clap = { version = "3.2.6", features = ["cargo", "derive", "unicode"] }
 crossbeam-channel = "0.5.5"
-ctrlc = {version = "3.2.2", features = ["termination"]}
+ctrlc = { version = "3.2.2", features = ["termination"] }
 derivative = "2.2.0"
 enum-iterator = "1.1.2"
 fs2 = "0.4.3"
 glib = "0.15.11"
 gtk = "0.15.5"
-json5 = {version = "0.4.1", optional = true}
+json5 = { version = "0.4.1", optional = true }
 lazy_static = "1.4.0"
 libappindicator = "0.7.0"
 log = "0.4.17"
 nix = "0.24.1"
 notify-rust = "4.5.8"
-serde = {version = "1.0.137", features = ["derive"]}
+serde = { version = "1.0.137", features = ["derive"] }
 serde_yaml = "0.8.24"
 simplelog = "0.12.0"
-strum = {version = "0.24.1", features = ["derive"]}
+strum = { version = "0.24.1", features = ["derive"] }
 
 [lib]
 path = "src/lib/mod.rs"

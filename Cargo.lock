@@ -288,17 +288,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "colored"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3616f750b84d8f0de8a58bda93e08e2a81ad3f523089b05f1dffecab48c6cbd"
-dependencies = [
- "atty",
- "lazy_static",
- "winapi",
-]
-
-[[package]]
 name = "concurrent-queue"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1469,21 +1458,19 @@ dependencies = [
  "notify-rust",
  "serde",
  "serde_yaml",
- "simple_logger",
+ "simplelog",
  "strum 0.24.1",
 ]
 
 [[package]]
-name = "simple_logger"
-version = "2.1.0"
+name = "simplelog"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c75a9723083573ace81ad0cdfc50b858aa3c366c48636edb4109d73122a0c0ea"
+checksum = "48dfff04aade74dd495b007c831cd6f4e0cee19c344dd9dc0884c0289b70a786"
 dependencies = [
- "atty",
- "colored",
  "log",
+ "termcolor",
  "time",
- "winapi",
 ]
 
 [[package]]

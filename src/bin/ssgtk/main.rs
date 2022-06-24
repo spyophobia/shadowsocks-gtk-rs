@@ -1,4 +1,5 @@
 use gui::app;
+use log::SetLoggerError;
 
 mod clap_def;
 mod event;
@@ -11,27 +12,31 @@ fn main() -> Result<(), String> {
     let args = clap_def::parse_and_validate();
 
     // init logger
-    logger_init(args.verbose as i32 - args.quiet as i32);
+    logger_init(args.verbose as i32 - args.quiet as i32).unwrap(); // never produces error on first call of init
 
     // start app
     app::run(&args).map_err(|err| err.to_string())
 }
 
-fn logger_init(relative_verbosity: i32) {
-    use log::Level::*;
+fn logger_init(relative_verbosity: i32) -> Result<(), SetLoggerError> {
+    use log::LevelFilter::*;
+    use simplelog::{ColorChoice, ConfigBuilder, TermLogger, TerminalMode};
 
     /// 0: `Error`, 1: `Warn`, 2: `Info`, 3: `Debug`, 4: `Trace`
-    pub const DEFAULT_LOG_VERBOSITY: i32 = 2;
+    pub const DEFAULT_LEVEL: i32 = 2;
 
-    let level = match DEFAULT_LOG_VERBOSITY + relative_verbosity {
-        0 => Some(Error),
-        1 => Some(Warn),
-        2 => Some(Info),
-        3 => Some(Debug),
-        4.. => Some(Trace),
-        _ => None, // negative == disable logging
+    let level_filter = match DEFAULT_LEVEL + relative_verbosity {
+        0 => Error,
+        1 => Warn,
+        2 => Info,
+        3 => Debug,
+        4.. => Trace,
+        _ => Off, // negative == disable logging
     };
-    if let Some(l) = level {
-        simple_logger::init_with_level(l).unwrap(); // never produces error on first call of init
-    }
+
+    let logger_config = ConfigBuilder::new()
+        .add_filter_allow_str("shadowsocks-gtk-rs") // crate lib
+        .add_filter_allow_str("ssgtk") // crate bin
+        .build();
+    TermLogger::init(level_filter, logger_config, TerminalMode::Stdout, ColorChoice::Auto)
 }

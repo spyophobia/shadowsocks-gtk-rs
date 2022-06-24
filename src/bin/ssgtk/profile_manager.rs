@@ -466,8 +466,9 @@ mod test {
     };
 
     use crossbeam_channel::unbounded as unbounded_channel;
-    use log::debug;
+    use log::{debug, LevelFilter};
     use shadowsocks_gtk_rs::util::leaky_bucket::NaiveLeakyBucketConfig;
+    use simplelog::{Config, SimpleLogger};
 
     use super::*;
     use crate::io::config_loader::ConfigFolder;
@@ -477,7 +478,7 @@ mod test {
     /// `cargo test example_profiles_test_run -- --nocapture`
     #[test]
     fn example_profiles_test_run() {
-        simple_logger::init().unwrap();
+        SimpleLogger::init(LevelFilter::Trace, Config::default()).unwrap();
 
         // parse example configs
         let eg_configs = ConfigFolder::from_path_recurse("example-config-profiles").unwrap();

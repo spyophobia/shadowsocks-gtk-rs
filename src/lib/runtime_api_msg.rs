@@ -3,7 +3,6 @@
 
 use std::fmt;
 
-use log::trace;
 use serde::{Deserialize, Serialize};
 
 use crate::notify_method::NotifyMethod;

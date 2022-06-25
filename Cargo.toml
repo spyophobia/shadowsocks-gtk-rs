@@ -14,8 +14,8 @@ repository = "https://github.com/spyophobia/shadowsocks-gtk-rs"
 version = "0.3.1"
 
 [features]
-default = ["runtime_api"]
-runtime_api = ["json5"]
+default = ["runtime-api"]
+runtime-api = ["json5"]
 
 [dependencies]
 clap = { version = "3.2.6", features = ["cargo", "derive", "unicode"] }
@@ -47,4 +47,4 @@ path = "src/bin/ssgtk/main.rs"
 [[bin]]
 name = "ssgtkctl"
 path = "src/bin/ssgtkctl/main.rs"
-required-features = ["runtime_api"]
+required-features = ["runtime-api"]

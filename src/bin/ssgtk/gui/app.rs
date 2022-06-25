@@ -13,11 +13,11 @@ use crossbeam_channel::{unbounded as unbounded_channel, Receiver, Sender};
 use gtk::prelude::*;
 use log::{debug, error, info, trace, warn};
 
-#[cfg(feature = "runtime_api")]
+#[cfg(feature = "runtime-api")]
 use shadowsocks_gtk_rs::runtime_api_msg::APICommand;
 use shadowsocks_gtk_rs::{notify_method::NotifyMethod, util};
 
-#[cfg(feature = "runtime_api")]
+#[cfg(feature = "runtime-api")]
 use crate::io::runtime_api::APIListener;
 use crate::{
     clap_def::CliArgs,
@@ -93,11 +93,11 @@ struct GTKApp {
     events_rx: Receiver<AppEvent>,
 
     // runtime API
-    #[cfg(feature = "runtime_api")]
+    #[cfg(feature = "runtime-api")]
     api_listener: APIListener,
-    #[cfg(feature = "runtime_api")]
+    #[cfg(feature = "runtime-api")]
     api_cmds_tx: Sender<APICommand>,
-    #[cfg(feature = "runtime_api")]
+    #[cfg(feature = "runtime-api")]
     api_cmds_rx: Receiver<APICommand>,
 
     // GUI components
@@ -118,7 +118,7 @@ impl GTKApp {
             icon_theme_dir,
             verbose: _,
             quiet: _,
-            #[cfg(feature = "runtime_api")]
+            #[cfg(feature = "runtime-api")]
             runtime_api_socket_path,
         } = args;
 
@@ -143,7 +143,7 @@ impl GTKApp {
         };
 
         // start runtime API
-        #[cfg(feature = "runtime_api")]
+        #[cfg(feature = "runtime-api")]
         let (api_listener, api_cmds_tx, api_cmds_rx) = {
             let (tx, rx) = unbounded_channel();
             let listener = APIListener::start(runtime_api_socket_path, tx.clone())?;
@@ -174,11 +174,11 @@ impl GTKApp {
             events_tx,
             events_rx,
 
-            #[cfg(feature = "runtime_api")]
+            #[cfg(feature = "runtime-api")]
             api_listener,
-            #[cfg(feature = "runtime_api")]
+            #[cfg(feature = "runtime-api")]
             api_cmds_tx,
-            #[cfg(feature = "runtime_api")]
+            #[cfg(feature = "runtime-api")]
             api_cmds_rx,
 
             tray,
@@ -339,7 +339,7 @@ impl GTKApp {
     }
 
     /// Handles the queued incoming runtime API commands.
-    #[cfg(feature = "runtime_api")]
+    #[cfg(feature = "runtime-api")]
     fn handle_api_commands(&mut self) {
         use APICommand::*;
         // using `while let` rather than `for` due to borrow checker issue
@@ -404,7 +404,7 @@ pub fn run(args: &CliArgs) -> Result<(), AppStartError> {
         move || {
             app.handle_app_events();
 
-            #[cfg(feature = "runtime_api")]
+            #[cfg(feature = "runtime-api")]
             app.handle_api_commands();
 
             Continue(true)

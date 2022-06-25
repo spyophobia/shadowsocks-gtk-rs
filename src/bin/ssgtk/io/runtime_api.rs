@@ -1,5 +1,5 @@
 //! This module defines a way to interact with the application via CLI in runtime,
-//! enabled behind the "runtime_api" feature.
+//! enabled behind the "runtime-api" feature.
 //!
 //! This is useful if you want to, say for example,
 //! bind a system shortcut to a particular action.

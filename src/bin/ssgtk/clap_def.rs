@@ -65,7 +65,7 @@ pub struct CliArgs {
     #[clap(short = 'q', long = "quiet", action = ArgAction::Count)]
     pub quiet: u8,
 
-    #[cfg(feature = "runtime_api")]
+    #[cfg(feature = "runtime-api")]
     /// Bind the runtime API listener to a custom socket.
     ///
     /// Useful if you want to control multiple instances.

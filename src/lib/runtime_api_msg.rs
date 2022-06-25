@@ -1,5 +1,5 @@
 //! This module defines the messages passed to and from the
-//! runtime API, enabled behind the "runtime_api" feature.
+//! runtime API, enabled behind the "runtime-api" feature.
 
 use std::fmt;
 

@@ -78,13 +78,13 @@ but I am concerned about circular symlinking causing unnecessary trouble.
 
 ## Can I bind a shortcut to \<some action>?
 
- - Yes! `runtime_api` is a default feature of this crate, which provides a `ssgtkctl` binary.
+ - Yes! `runtime-api` is a default feature of this crate, which provides a `ssgtkctl` binary.
      You can use it to make the application do various things. All you need to do is to bind a system shortcut to it.
      To see what it can do, simply run:
 ```sh
 ssgtkctl --help
 ```
- - Underneath the hood, the `runtime_api` feature starts a listener on a Unix socket,
+ - Underneath the hood, the `runtime-api` feature starts a listener on a Unix socket,
      to which you can send commands in [JSON5](https://json5.org/).
      The `ssgtkctl` binary is merely a delegate to simplify the sending of said command.
  - If you wish to interface with the Unix socket directly, you can take a look at some example commands by running:

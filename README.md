@@ -70,7 +70,7 @@ cargo install shadowsocks-gtk-rs
 ### Dependencies
 
  - A working installation of `rust`, see [here](https://www.rust-lang.org/tools/install).
- - A shadowsocks binary as the backend. The default is [`shadowsocks-rust`](https://github.com/shadowsocks/shadowsocks-rust).
+ - The `sslocal` binary from [`shadowsocks-rust`](https://github.com/shadowsocks/shadowsocks-rust) as the backend.
    - Strictly speaking, this is only required at runtime.
  - `GTK3` and `libappindicator`, using your distro's package manager.
 

@@ -94,9 +94,8 @@ struct GTKApp {
 
     // runtime API
     #[cfg(feature = "runtime-api")]
-    api_listener: APIListener,
-    #[cfg(feature = "runtime-api")]
-    api_cmds_tx: Sender<APICommand>,
+    #[allow(dead_code)]
+    api_listener: APIListener, // this needs to be stored to be kept alive
     #[cfg(feature = "runtime-api")]
     api_cmds_rx: Receiver<APICommand>,
 
@@ -144,10 +143,10 @@ impl GTKApp {
 
         // start runtime API
         #[cfg(feature = "runtime-api")]
-        let (api_listener, api_cmds_tx, api_cmds_rx) = {
+        let (api_listener, api_cmds_rx) = {
             let (tx, rx) = unbounded_channel();
-            let listener = APIListener::start(runtime_api_socket_path, tx.clone())?;
-            (listener, tx, rx)
+            let listener = APIListener::start(runtime_api_socket_path, tx)?;
+            (listener, rx)
         };
 
         // build permanent GUI components
@@ -176,8 +175,6 @@ impl GTKApp {
 
             #[cfg(feature = "runtime-api")]
             api_listener,
-            #[cfg(feature = "runtime-api")]
-            api_cmds_tx,
             #[cfg(feature = "runtime-api")]
             api_cmds_rx,
 

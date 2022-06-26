@@ -19,8 +19,8 @@ impl fmt::Display for LeakyBucketOverflowed {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "NaiveLeakyBucket overflowed: more than {} times within {:?}",
-            self.times, self.within
+            "NaiveLeakyBucket overflowed: more than {} times within {:?}; history: {:?}",
+            self.times, self.within, self.history
         )
     }
 }

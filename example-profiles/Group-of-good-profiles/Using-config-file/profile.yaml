@@ -1,0 +1,32 @@
+---
+# This is an example of a good profile in "config-file" mode
+
+# Mandatory
+# Specifies "config-file" mode
+mode: "config-file"
+
+# Optional
+# The name of this profile
+# Defaults to current directory's name if unset
+display_name: "Example Profile (config-file mode)"
+
+# Optional
+# The working directory of `sslocal`
+# Defaults to the currently directory of this YAML file if unset
+#pwd: "."
+
+# Optional
+# Absolute path to the `sslocal` binary
+# Defaults to looking up `sslocal` in $PATH if unset
+#bin_path: "/usr/bin/sslocal"
+
+# Mandatory
+config_path: "./ss.json"
+
+# Mandatory
+# A list of arguments passed to `sslocal`
+# Defaults to `[]` (empty)
+extra_args:
+  - "--tcp-fast-open"
+  - "--worker-threads"
+  - "4"

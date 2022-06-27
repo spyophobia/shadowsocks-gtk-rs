@@ -1,32 +1,25 @@
 {
+  "cSpell.language": "en-US",
   "cSpell.words": [
-    "colored",
     "devel",
-    "hexpand",
-    "hscrollbar",
     "libayatana",
     "libgtk",
     "netcat",
-    "nocapture",
     "nonblocking",
-    "pango",
     "SIGINT",
     "spyophobia",
     "ssgtk",
     "ssgtkctl",
     "sslocal",
-    "unistd",
-    "vadjustment",
-    "vscrollbar",
-    "xalign"
   ],
   "todo-tree.general.tags": [
     "BUG",
     "FIXME",
     "HACK",
     "IDEA",
+    "IMPRV",
     "TEMP",
-    "TODO",
+    "TODO"
   ],
-  "todo-tree.regex.regex": "((//|#|<!--|;|/\\*|^|^[ \\t]*(-|\\d+.))\\s*($TAGS)(?=:|\\s)|^\\s*- \\[ \\]|(todo|unimplemented)!\\(.*\\))",
+  "todo-tree.regex.regex": "((//|#|<!--|;|/\\*|^|^[ \\t]*(-|\\d+.))\\s*($TAGS)(?=:|\\s)|^\\s*- \\[ \\]|(todo|unimplemented)!\\(.*\\))"
 }

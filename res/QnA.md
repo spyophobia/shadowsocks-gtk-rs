@@ -43,7 +43,7 @@ You may put other profile-specific files and directories under this directory to
 if you need to reference them from `profile.yaml`, such as a `ss-config.json`.
 
 For examples of how to manually write a `profile.yaml`,
-see [/example-config-profiles/Group-of-good-profiles](/example-config-profiles/Group-of-good-profiles).
+see [/example-profiles/Group-of-good-profiles](/example-profiles/Group-of-good-profiles).
 
 ### Grouped multi-profile config
 

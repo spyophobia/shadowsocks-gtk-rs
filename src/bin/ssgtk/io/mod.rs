@@ -2,7 +2,7 @@
 
 // public members
 pub mod app_state;
-pub mod config_loader;
+pub mod profile_loader;
 #[cfg(feature = "runtime-api")]
 pub mod runtime_api;
 

@@ -9,7 +9,7 @@ use libappindicator::{AppIndicator, AppIndicatorStatus};
 use log::{debug, error, warn};
 use shadowsocks_gtk_rs::{notify_method::NotifyMethod, util};
 
-use crate::{event::AppEvent, io::config_loader::ConfigFolder};
+use crate::{event::AppEvent, io::profile_loader::ProfileFolder};
 
 const TRAY_TITLE: &str = "Shadowsocks GTK";
 
@@ -23,7 +23,7 @@ const TRAY_TITLE: &str = "Shadowsocks GTK";
 type ListeningRadioMenuItem = (RadioMenuItem, Rc<RwLock<bool>>);
 
 #[derive(Debug, Clone)]
-enum ConfigMenuItem {
+enum ProfileMenuItem {
     Profile(ListeningRadioMenuItem),
     Group(MenuItem),
 }
@@ -54,7 +54,7 @@ impl TrayItem {
         icon_name: &str,
         icon_theme_dir: Option<impl AsRef<Path>>,
         events_tx: Sender<AppEvent>,
-        config_folder: &ConfigFolder,
+        profile_folder: &ProfileFolder,
         notify_method: NotifyMethod,
     ) -> Self {
         // create stop button up top because `TrayItem` has a mandatory field
@@ -93,7 +93,7 @@ impl TrayItem {
         // add dynamic profiles
         tray.add_label("Profiles");
         tray.add_separator();
-        tray.load_profiles(config_folder, events_tx.clone());
+        tray.load_profiles(profile_folder, events_tx.clone());
         tray.add_separator();
 
         // add stop button (previously created)
@@ -156,6 +156,7 @@ impl TrayItem {
 
     /// Notify the tray about notification method change,
     /// without emitting a `SetNotify` event.
+    #[cfg(feature = "runtime-api")]
     pub fn notify_notify_method_change(&mut self, method: NotifyMethod) {
         let (method_item, listen_enable) = self
             .notify_method_items
@@ -196,27 +197,27 @@ impl TrayItem {
         item.connect_activate(move |_| action());
         self.menu.append(&item);
     }
-    /// Load the full list of `ConfigProfiles` from the root `ConfigFolder`,
-    /// automatically generate the nested menu structure using `menu_tree_from_config_folder_recurse`,
+    /// Load all `Profiles` from the root `ProfileFolder`,
+    /// automatically generate the nested menu structure using `generate_profile_tree`,
     /// and append them all to the tray item's menu as `RadioMenuItem`s.
     ///
     /// We unroll the first layer of the recursive call because we want to
     /// remove the topmost layer of nesting.
     ///
     /// Also replaces `Self::profile_items` with the new list of `RadioMenuItem`s.
-    fn load_profiles(&mut self, config_folder: &ConfigFolder, events_tx: Sender<AppEvent>) {
+    fn load_profiles(&mut self, profile_folder: &ProfileFolder, events_tx: Sender<AppEvent>) {
         let radio_group = &self.manual_stop_item.0; // the ref used to group `RadioMenuItem`s
         let mut radio_menu_item_list = vec![];
-        match config_folder {
-            ConfigFolder::Group(g) => {
+        match profile_folder {
+            ProfileFolder::Group(g) => {
                 for cf in g.content.iter() {
                     let child = generate_profile_tree(cf, radio_group, events_tx.clone(), &mut radio_menu_item_list);
                     match child {
-                        ConfigMenuItem::Profile(radio_item) => {
+                        ProfileMenuItem::Profile(radio_item) => {
                             self.menu.append(&radio_item.0); // build menu
                             radio_menu_item_list.push(radio_item); // save to list
                         }
-                        ConfigMenuItem::Group(item) => self.menu.append(&item), // build menu
+                        ProfileMenuItem::Group(item) => self.menu.append(&item), // build menu
                     }
                 }
             }
@@ -224,11 +225,11 @@ impl TrayItem {
                 let profile_menu_item =
                     generate_profile_tree(profile, radio_group, events_tx, &mut radio_menu_item_list);
                 match profile_menu_item {
-                    ConfigMenuItem::Profile(radio_item) => {
+                    ProfileMenuItem::Profile(radio_item) => {
                         self.menu.append(&radio_item.0); // build menu
                         radio_menu_item_list.push(radio_item); //  save to list
                     }
-                    ConfigMenuItem::Group(_) => unreachable!("profile_menu_item should be a profile"),
+                    ProfileMenuItem::Group(_) => unreachable!("profile_menu_item should be a profile"),
                 }
             }
         }
@@ -243,24 +244,24 @@ impl TrayItem {
     }
 }
 
-/// Recursively constructs a nested menu structure from a `ConfigFolder`,
-/// attaching the corresponding profile-switch action to each leaf `ConfigProfile`.
+/// Recursively constructs a nested menu structure from a `ProfileFolder`,
+/// attaching the corresponding profile-switch action to each leaf `Profile`.
 ///
-/// If the passed in `config_folder` is a group, this function also moves
+/// If the passed in `profile_folder` is a group, this function also moves
 /// all the `RadioMenuItems` recursively generated by its descendants
 /// into the `Vec` `radio_menu_item_list`.
 fn generate_profile_tree(
-    config_folder: &ConfigFolder,
+    profile_folder: &ProfileFolder,
     group: &impl IsA<RadioMenuItem>,
     events_tx: Sender<AppEvent>,
     radio_menu_item_list: &mut Vec<ListeningRadioMenuItem>,
-) -> ConfigMenuItem {
-    match config_folder {
-        ConfigFolder::Profile(p) => {
+) -> ProfileMenuItem {
+    match profile_folder {
+        ProfileFolder::Profile(p) => {
             let profile = p.clone();
             let enable_flag = Rc::new(RwLock::new(true));
             let enable_flag_mv = Rc::clone(&enable_flag);
-            let menu_item = RadioMenuItem::with_label_from_widget(group, Some(&p.display_name));
+            let menu_item = RadioMenuItem::with_label_from_widget(group, Some(&p.metadata.display_name));
             menu_item.set_sensitive(true);
             menu_item.connect_toggled(move |item| {
                 if item.is_active() && *util::rwlock_read(&enable_flag_mv) {
@@ -269,24 +270,24 @@ fn generate_profile_tree(
                     }
                 }
             });
-            ConfigMenuItem::Profile((menu_item, enable_flag))
+            ProfileMenuItem::Profile((menu_item, enable_flag))
         }
-        ConfigFolder::Group(g) => {
+        ProfileFolder::Group(g) => {
             let submenu = Menu::new();
             for cf in g.content.iter() {
                 match generate_profile_tree(cf, group, events_tx.clone(), radio_menu_item_list) {
-                    ConfigMenuItem::Profile(radio_item) => {
+                    ProfileMenuItem::Profile(radio_item) => {
                         submenu.append(&radio_item.0); // build menu
                         radio_menu_item_list.push(radio_item); //  save to list
                     }
-                    ConfigMenuItem::Group(item) => submenu.append(&item), // build menu
+                    ProfileMenuItem::Group(item) => submenu.append(&item), // build menu
                 }
             }
 
             let parent = MenuItem::with_label(&g.display_name);
             parent.set_sensitive(true);
             parent.set_submenu(Some(&submenu));
-            ConfigMenuItem::Group(parent)
+            ProfileMenuItem::Group(parent)
         }
     }
 }

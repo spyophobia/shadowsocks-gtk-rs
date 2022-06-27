@@ -1,0 +1,15 @@
+---
+# This profile is in "proxy" mode, but is missing the necessary `password` field.
+# It would have been considered a bad profile, however it is ignored
+# due to the existence of the `.ss_ignore` file.
+
+mode: "proxy"
+
+local_addr:
+  - "::"
+  - 1080
+server_addr:
+  - "www.example.org"
+  - 443
+#password: "foobar"
+encrypt_method: "aes-256-gcm"

@@ -1,8 +1,0 @@
----
-# this profile is well-defined, however the launch parameters
-# it provides to `sslocal` cause it to exit immediately
-# with exit code 0, which is unexpected
-display_name: "Exit successfully"
-# we provide `sslocal` with parameters that make it exit
-extra_args:
-  - "--version"

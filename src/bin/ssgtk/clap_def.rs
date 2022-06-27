@@ -13,7 +13,7 @@ use crate::io::app_state::{AppState, AppStateError};
 lazy_static! {
     static ref DEFAULT_CONFIG_DIR: PathBuf =
         PathBuf::from(env::var("HOME").expect("$HOME not set")).join(".config/shadowsocks-gtk-rs");
-    static ref PROFILES_DIR_DEFAULT: PathBuf = DEFAULT_CONFIG_DIR.join("config-profiles");
+    static ref PROFILES_DIR_DEFAULT: PathBuf = DEFAULT_CONFIG_DIR.join("profiles");
     static ref PROFILES_DIR_DEFAULT_STR: String = PROFILES_DIR_DEFAULT
         .to_str()
         .expect("default profiles-dir not UTF-8")
@@ -65,10 +65,10 @@ pub struct CliArgs {
     #[clap(short = 'q', long = "quiet", action = ArgAction::Count)]
     pub quiet: u8,
 
-    #[cfg(feature = "runtime-api")]
     /// Bind the runtime API listener to a custom socket.
     ///
     /// Useful if you want to control multiple instances.
+    #[cfg(feature = "runtime-api")]
     #[clap(long = "api-socket", value_name = "PATH", default_value = &RUNTIME_API_SOCKET_PATH_DEFAULT_STR)]
     pub runtime_api_socket_path: PathBuf,
 }

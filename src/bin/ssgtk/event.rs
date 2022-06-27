@@ -2,14 +2,14 @@
 
 use shadowsocks_gtk_rs::notify_method::NotifyMethod;
 
-use crate::io::config_loader::ConfigProfile;
+use crate::io::profile_loader::Profile;
 
 #[derive(Debug, Clone)]
 pub enum AppEvent {
     // from GUI
     BacklogShow,
     BacklogHide,
-    SwitchProfile(ConfigProfile),
+    SwitchProfile(Profile),
     ManualStop,
     SetNotify(NotifyMethod),
     Quit,

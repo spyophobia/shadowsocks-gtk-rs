@@ -3,18 +3,18 @@
 use std::{
     fmt,
     io::{self, BufRead, BufReader, Read},
-    process::{Child, ExitStatus, Stdio},
+    os::unix::net::UnixStream,
+    process::ExitStatus,
     sync::{Arc, Mutex, RwLock},
     thread::{self, JoinHandle},
     time::Duration,
 };
 
 use crossbeam_channel::{unbounded as unbounded_channel, Receiver, Sender};
+use duct::{unix::HandleExt, Handle};
+use itertools::Itertools;
 use log::{debug, error, info, trace, warn};
-use nix::{
-    sys::signal::{self, Signal},
-    unistd::Pid,
-};
+use nix::sys::signal::Signal;
 use shadowsocks_gtk_rs::util::{
     self,
     leaky_bucket::{NaiveLeakyBucket, NaiveLeakyBucketConfig},
@@ -24,7 +24,7 @@ use crate::{
     event::AppEvent,
     io::{
         app_state::AppState,
-        config_loader::{ConfigFolder, ConfigProfile},
+        profile_loader::{Profile, ProfileFolder},
     },
 };
 
@@ -35,19 +35,21 @@ use crate::{
 #[derive(Debug)]
 struct ActiveSSInstance {
     /// Ownership instead of reference due to need for restart.
-    profile: ConfigProfile,
-    /// We store PID separately because we need it even if the handle is consumed.
-    sslocal_pid: Pid,
-    /// The handle of the subprocess; wrapped in `Option` because it could be
-    /// consumed by an exit monitor daemon.
-    sslocal_process: Option<Child>,
+    profile: Profile,
+    /// The handle of the subprocess.
+    sslocal_process: Arc<Handle>,
     /// The daemon threads that need to be cleanup up when deactivating.
     daemon_handles: Vec<JoinHandle<()>>,
 }
 
 impl fmt::Display for ActiveSSInstance {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "(PID: {}, Profile: {})", self.sslocal_pid, self.profile.display_name)
+        let pids_repr = self.sslocal_process.pids().iter().map(u32::to_string).join(", ");
+        write!(
+            f,
+            "ActiveSSInstance(Profile: {}, PIDs: [{}])",
+            self.profile.metadata.display_name, pids_repr
+        )
     }
 }
 
@@ -58,11 +60,12 @@ impl Drop for ActiveSSInstance {
     fn drop(&mut self) {
         let self_name = self.to_string();
 
-        trace!("Instance {} is getting dropped", self_name);
+        trace!("{} is getting dropped", self_name);
 
         // send stop signal to `sslocal` process
-        // could return Err if `sslocal` already exited
-        let _ = signal::kill(self.sslocal_pid, Signal::SIGINT);
+        if let Err(err) = self.sslocal_process.send_signal(Signal::SIGINT as i32) {
+            trace!("{}'s underlying process has already exited: {}", self_name, err);
+        }
 
         // sleep for a short time to allow `sslocal` to exit fully
         thread::sleep(Duration::from_millis(100));
@@ -70,41 +73,66 @@ impl Drop for ActiveSSInstance {
         // make sure all daemon threads finish
         for handle in self.daemon_handles.drain(..) {
             if let Err(err) = handle.join() {
-                warn!(
-                    "A daemon of sslocal instance {} panicked unexpectedly: {:?}",
-                    self_name, err
-                );
+                warn!("A daemon of {} panicked unexpectedly: {:?}", self_name, err);
             };
         }
     }
 }
 
 impl ActiveSSInstance {
-    fn new(new_profile: ConfigProfile) -> io::Result<Self> {
-        // start `sslocal` subprocess
-        let proc = new_profile.run_sslocal(Some(Stdio::piped()), Some(Stdio::piped()))?;
-        let sslocal_pid = Pid::from_raw(proc.id() as i32);
+    /// Start a new instance of `sslocal`, optionally piping the outputs into channels.
+    fn new(profile: Profile, stdout_tx: Option<Sender<String>>, stderr_tx: Option<Sender<String>>) -> io::Result<Self> {
+        // IMPRV: this would be much cleaner with `Option::unzip`
+        // See https://doc.rust-lang.org/std/option/enum.Option.html#method.unzip
+        let (stdout_stream_tx, stdout_pipe_pair) = {
+            let endpoints = stdout_tx
+                .map(|tx| UnixStream::pair().map(|(s0, s1)| (s0, s1, tx)))
+                .transpose()?;
+            match endpoints {
+                Some((s0, s1, tx)) => (Some(s0), Some((s1, tx))),
+                None => (None, None),
+            }
+        };
+        let (stderr_stream_tx, stderr_pipe_pair) = {
+            let endpoints = stderr_tx
+                .map(|tx| UnixStream::pair().map(|(s0, s1)| (s0, s1, tx)))
+                .transpose()?;
+            match endpoints {
+                Some((s0, s1, tx)) => (Some(s0), Some((s1, tx))),
+                None => (None, None),
+            }
+        };
 
-        Ok(Self {
-            profile: new_profile,
-            sslocal_pid,
-            sslocal_process: Some(proc),
+        // start instance
+        let proc = profile.run_sslocal(stdout_stream_tx, stderr_stream_tx)?;
+        let mut instance = Self {
+            profile,
+            sslocal_process: Arc::new(proc),
             daemon_handles: vec![],
-        })
+        };
+
+        // pipe output
+        if let Some((stream_rx, channel_tx)) = stdout_pipe_pair {
+            instance.pipe_to_channel_impl(stream_rx, "stdout", channel_tx)?;
+        }
+        if let Some((stream_rx, channel_tx)) = stderr_pipe_pair {
+            instance.pipe_to_channel_impl(stream_rx, "stderr", channel_tx)?;
+        }
+
+        Ok(instance)
     }
 
-    /// The common implementation for `Self::pipe_stdout` & `Self::pipe_stderr`.
-    ///
-    /// Do not use directly.
-    fn pipe_any_impl<R>(&mut self, source: R, source_type: &'static str, tx: Sender<String>) -> io::Result<()>
+    /// Start a daemon to pipe output from a readable source to a channel.
+    fn pipe_to_channel_impl<R>(&mut self, source: R, source_type: &'static str, tx: Sender<String>) -> io::Result<()>
     where
         R: Read + Send + 'static,
     {
         let source = BufReader::new(source);
         let self_name = self.to_string();
         let handle = thread::Builder::new()
-            .name(format!("{} piper daemon for instance {}", source_type, self_name))
+            .name(format!("{} piper daemon for {}", source_type, self_name))
             .spawn(move || {
+                trace!("{} piper daemon for {} started", source_type, self_name);
                 for line_res in source.lines() {
                     let line = {
                         let raw = line_res.unwrap_or_else(|err| format!("Error reading {}: {}", &source_type, err));
@@ -113,7 +141,7 @@ impl ActiveSSInstance {
                     // try to send through channel
                     if let Err(err) = tx.send(line.clone()) {
                         warn!(
-                            "Instance {} wrote to {}, but all receivers have hung up. Piper daemon stopping.",
+                            "{} wrote to {}, but all receivers have hung up. Piper daemon stopping.",
                             self_name, source_type
                         );
                         warn!("Last line written was \"{}\".", err.0);
@@ -125,60 +153,22 @@ impl ActiveSSInstance {
         self.daemon_handles.push(handle);
         Ok(())
     }
-    /// Pipe all lines of `sslocal`'s `stdout` to a channel.
-    fn pipe_stdout(&mut self, tx: Sender<String>) -> io::Result<()> {
-        let proc = self.sslocal_process.as_mut().ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::NotFound,
-                "Cannot pipe stdout; process handle already consumed",
-            )
-        })?;
-        let stdout = proc.stdout.take().ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::NotFound,
-                "Cannot pipe stdout; ChildStdout stream already consumed",
-            )
-        })?;
-        self.pipe_any_impl(stdout, "stdout", tx)
-    }
-    /// Pipe all lines of `sslocal`'s `stderr` to a channel.
-    fn pipe_stderr(&mut self, tx: Sender<String>) -> io::Result<()> {
-        let proc = self.sslocal_process.as_mut().ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::NotFound,
-                "Cannot pipe stderr; process handle already consumed",
-            )
-        })?;
-        let stderr = proc.stderr.take().ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::NotFound,
-                "Cannot pipe stderr; ChildStderr stream already consumed",
-            )
-        })?;
-        self.pipe_any_impl(stderr, "stderr", tx)
-    }
 
     /// Starts a monitoring thread that waits for the underlying `sslocal`
     /// to terminate, when it will emit its `ExitStatus` via the returned channel.
-    ///
-    /// This will consume `sslocal`'s process handle, so make sure to
-    /// set up `stdout` & `stderr` piping first.
     fn alert_on_exit(&mut self) -> io::Result<Receiver<ExitStatus>> {
         let self_name = self.to_string();
-        let mut proc = self
-            .sslocal_process
-            .take()
-            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "sslocal process handle already consumed"))?;
+        let proc = Arc::clone(&self.sslocal_process);
         let (exit_tx, exit_rx) = unbounded_channel();
         let handle = thread::Builder::new()
             .name(format!("exit alert daemon for instance {}", self_name))
             .spawn(move || {
-                let status = proc.wait().unwrap(); // process already running for sure
+                let status = proc
+                    .wait()
+                    .unwrap() // process already running for sure
+                    .status;
                 if let Err(err) = exit_tx.send(status) {
-                    warn!(
-                        "Instance {} exit detected: {}, but the receiver has hung up.",
-                        self_name, err.0
-                    );
+                    warn!("{} exit detected: {}, but the receiver has hung up.", self_name, err.0);
                 }
             })?;
         self.daemon_handles.push(handle);
@@ -256,7 +246,7 @@ impl ProfileManager {
     }
 
     /// Resume from a previously saved state.
-    pub fn resume_from(state: &AppState, profiles: &ConfigFolder, events_tx: Sender<AppEvent>) -> Self {
+    pub fn resume_from(state: &AppState, profiles: &ProfileFolder, events_tx: Sender<AppEvent>) -> Self {
         let mut pm = Self::new(state.restart_limit, events_tx);
         match state.most_recent_profile.as_str() {
             "" => debug!("Most recent profile is none; will not attempt to resume"),
@@ -277,7 +267,7 @@ impl ProfileManager {
     }
 
     /// Get the profile of the currently active instance.
-    pub fn current_profile(&self) -> Option<ConfigProfile> {
+    pub fn current_profile(&self) -> Option<Profile> {
         util::rwlock_read(&self.active_instance)
             .as_ref()
             .map(|instance| instance.profile.clone())
@@ -288,16 +278,13 @@ impl ProfileManager {
     /// Returns `Ok(())` if and only if the new instance starts successfully and the old one is cleaned up.
     ///
     /// If the new instance fails to start, this `ProfileManager` will be left in deactivated state.
-    pub fn switch_to(&mut self, new_profile: ConfigProfile) -> io::Result<()> {
+    pub fn switch_to(&mut self, profile: Profile) -> io::Result<()> {
         // deactivate the old instance
         let _ = self.try_stop();
 
         // activate the new instance
-        let mut new_instance = ActiveSSInstance::new(new_profile)?;
-
-        // pipe `sslocal`'s `stdout` & `stderr`
-        new_instance.pipe_stdout(self.stdout_tx.clone())?;
-        new_instance.pipe_stderr(self.stderr_tx.clone())?;
+        let mut new_instance =
+            ActiveSSInstance::new(profile, Some(self.stdout_tx.clone()), Some(self.stderr_tx.clone()))?;
 
         // monitor for failure
         let exit_alert_rx = new_instance.alert_on_exit()?;
@@ -330,7 +317,7 @@ impl ProfileManager {
             .name("ProfileManager failure monitor daemon".into())
             .spawn(move || {
                 // profile stays the same across restarts, therefore outside of loop
-                let profile_name = profile.display_name.clone();
+                let profile_name = profile.metadata.display_name.clone();
                 let mut exit_listener = listener; // is set to new listener in every iteration
                 let mut restart_counter: NaiveLeakyBucket = restart_limit.into();
                 // restart loop can exit for a variety of reasons; see code
@@ -352,10 +339,7 @@ impl ProfileManager {
                             // most likely because `ActiveInstance` gets dropped
                             // causing `sslocal` to exit gracefully,
                             // or if the user calls `sslocal --version` or something
-                            debug!(
-                                "Instance {} has exited successfully; auto-restart stopped",
-                                instance_name
-                            );
+                            debug!("{} has exited successfully; auto-restart stopped", instance_name);
                             if let Err(_) = events_tx.send(AppEvent::OkStop {
                                 instance_name: Some(instance_name),
                             }) {
@@ -366,7 +350,7 @@ impl ProfileManager {
                         Err(err) => {
                             // we no longer know the status of `sslocal`, so fail fast
                             error!(
-                                "The exit alert daemon for instance {} has hung up: {}; auto-restart stopped",
+                                "The exit alert daemon for {} has hung up: {}; auto-restart stopped",
                                 instance_name, err
                             );
                             if let Err(_) = events_tx.send(AppEvent::ErrorStop {
@@ -379,7 +363,7 @@ impl ProfileManager {
                         }
                         Ok(bad_status) => {
                             // do restart
-                            warn!("Instance {} has failed; restarting", instance_name);
+                            warn!("{} has failed; restarting", instance_name);
                             warn!("Exit status: {}", bad_status);
                         }
                     }
@@ -403,14 +387,12 @@ impl ProfileManager {
                     // Restart
                     /// Temporary helper builder function to simplify error handling.
                     fn start_pipe_alert(
-                        profile: ConfigProfile,
+                        profile: Profile,
                         stdout_tx: Sender<String>,
                         stderr_tx: Sender<String>,
                         exit_listener: &mut Receiver<ExitStatus>,
                     ) -> io::Result<ActiveSSInstance> {
-                        let mut instance = ActiveSSInstance::new(profile)?;
-                        instance.pipe_stdout(stdout_tx)?;
-                        instance.pipe_stderr(stderr_tx)?;
+                        let mut instance = ActiveSSInstance::new(profile, Some(stdout_tx), Some(stderr_tx))?;
                         *exit_listener = instance.alert_on_exit()?;
                         Ok(instance)
                     }
@@ -471,7 +453,7 @@ mod test {
     use simplelog::{Config, SimpleLogger};
 
     use super::*;
-    use crate::io::config_loader::ConfigFolder;
+    use crate::io::profile_loader::ProfileFolder;
 
     /// This test will always pass. You need to examine the outputs manually.
     ///
@@ -481,7 +463,7 @@ mod test {
         SimpleLogger::init(LevelFilter::Trace, Config::default()).unwrap();
 
         // parse example configs
-        let eg_configs = ConfigFolder::from_path_recurse("example-config-profiles").unwrap();
+        let eg_configs = ProfileFolder::from_path_recurse("example-profiles").unwrap();
         let profile_list = eg_configs.get_profiles();
         debug!("Loaded {} profiles.", profile_list.len());
 

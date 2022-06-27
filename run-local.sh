@@ -13,7 +13,7 @@ else
 fi
 cargo run ${MODE_FLAG} -- \
   -v \
-  --profiles-dir "./example-config-profiles" \
+  --profiles-dir "./example-profiles" \
   --app-state "./local-run/app-state.yaml" \
   --api-socket "./local-run/shadowsocks-gtk-rs.sock" \
   --icon-theme-dir "./res/logo" \

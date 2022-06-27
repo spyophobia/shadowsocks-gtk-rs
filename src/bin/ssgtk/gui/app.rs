@@ -24,7 +24,7 @@ use crate::{
     event::AppEvent,
     io::{
         app_state::AppState,
-        config_loader::{ConfigFolder, ConfigLoadError, ConfigProfile},
+        profile_loader::{Profile, ProfileFolder, ProfileLoadError},
     },
     profile_manager::ProfileManager,
 };
@@ -37,7 +37,7 @@ use super::{
 
 #[derive(Debug)]
 pub enum AppStartError {
-    ConfigLoadError(ConfigLoadError),
+    ProfileLoadError(ProfileLoadError),
     CtrlCError(ctrlc::Error),
     GLibBoolError(glib::BoolError),
     GLibError(glib::Error),
@@ -47,19 +47,20 @@ pub enum AppStartError {
 impl fmt::Display for AppStartError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use AppStartError::*;
+        let prefix = "AppStartError";
         match self {
-            ConfigLoadError(e) => write!(f, "AppStartError-ConfigLoadError: {}", e),
-            CtrlCError(e) => write!(f, "AppStartError-CtrlCError: {}", e),
-            GLibBoolError(e) => write!(f, "AppStartError-GLibBoolError: {}", e),
-            GLibError(e) => write!(f, "AppStartError-GLibError: {}", e),
-            IOError(e) => write!(f, "AppStartError-IOError: {}", e),
+            ProfileLoadError(e) => write!(f, "{}-ProfileLoadError: {}", prefix, e),
+            CtrlCError(e) => write!(f, "{}-CtrlCError: {}", prefix, e),
+            GLibBoolError(e) => write!(f, "{}-GLibBoolError: {}", prefix, e),
+            GLibError(e) => write!(f, "{}-GLibError: {}", prefix, e),
+            IOError(e) => write!(f, "{}-IOError: {}", prefix, e),
         }
     }
 }
 
-impl From<ConfigLoadError> for AppStartError {
-    fn from(err: ConfigLoadError) -> Self {
-        Self::ConfigLoadError(err)
+impl From<ProfileLoadError> for AppStartError {
+    fn from(err: ProfileLoadError) -> Self {
+        Self::ProfileLoadError(err)
     }
 }
 impl From<ctrlc::Error> for AppStartError {
@@ -87,7 +88,7 @@ impl From<io::Error> for AppStartError {
 struct GTKApp {
     // core
     app_state_path: PathBuf,
-    config_folder: ConfigFolder,
+    profile_folder: ProfileFolder,
     profile_manager: Arc<RwLock<ProfileManager>>,
     events_tx: Sender<AppEvent>,
     events_rx: Receiver<AppEvent>,
@@ -125,10 +126,10 @@ impl GTKApp {
         gtk::init()?;
 
         // load profiles
-        let config_folder = ConfigFolder::from_path_recurse(profiles_dir)?;
+        let profile_folder = ProfileFolder::from_path_recurse(profiles_dir)?;
         debug!(
             "Successfully loaded {} profiles in total",
-            config_folder.profile_count()
+            profile_folder.profile_count()
         );
 
         // load app state
@@ -137,7 +138,7 @@ impl GTKApp {
         // resume core
         let (events_tx, events_rx) = unbounded_channel();
         let pm_arc = {
-            let pm = ProfileManager::resume_from(&previous_state, &config_folder, events_tx.clone());
+            let pm = ProfileManager::resume_from(&previous_state, &profile_folder, events_tx.clone());
             Arc::new(RwLock::new(pm))
         };
 
@@ -155,12 +156,12 @@ impl GTKApp {
                 &tray_icon_filename,
                 icon_theme_dir.as_deref(),
                 events_tx.clone(),
-                &config_folder,
+                &profile_folder,
                 previous_state.notify_method,
             );
             // set tray state to match profile manager state
             match util::rwlock_read(&pm_arc).current_profile() {
-                Some(p) => tray.notify_profile_switch(p.display_name),
+                Some(p) => tray.notify_profile_switch(p.metadata.display_name),
                 None => tray.notify_sslocal_stop(),
             }
             tray
@@ -168,7 +169,7 @@ impl GTKApp {
 
         Ok(Self {
             app_state_path: app_state_path.clone(),
-            config_folder,
+            profile_folder,
             profile_manager: pm_arc,
             events_tx,
             events_rx,
@@ -188,7 +189,7 @@ impl GTKApp {
     /// Export the current application state.
     pub fn snapshot(&self) -> AppState {
         let pm = util::rwlock_read(&self.profile_manager);
-        let most_recent_profile = pm.current_profile().map_or("".into(), |p| p.display_name);
+        let most_recent_profile = pm.current_profile().map_or("".into(), |p| p.metadata.display_name);
         AppState {
             most_recent_profile,
             restart_limit: pm.restart_limit,
@@ -247,10 +248,9 @@ impl GTKApp {
     }
     /// Restart the `sslocal` instance with the current profile.
     fn restart(&mut self) {
-        let current_profile = util::rwlock_read(&self.profile_manager).current_profile();
-        match current_profile {
+        match util::rwlock_read(&self.profile_manager).current_profile() {
             Some(p) => {
-                let name = p.display_name.clone();
+                let name = p.metadata.display_name.clone();
                 info!("Restarting profile \"{}\"", name);
                 let switch_res = util::rwlock_write(&self.profile_manager).switch_to(p);
                 if let Err(err) = switch_res {
@@ -261,8 +261,8 @@ impl GTKApp {
         }
     }
     /// Switch to the specified profile.
-    fn switch_profile(&mut self, profile: ConfigProfile) {
-        let name = profile.display_name.clone();
+    fn switch_profile(&mut self, profile: Profile) {
+        let name = profile.metadata.display_name.clone();
         info!("Switching profile to \"{}\"", name);
         let switch_res = util::rwlock_write(&self.profile_manager).switch_to(profile);
         if let Err(err) = switch_res {
@@ -350,7 +350,7 @@ impl GTKApp {
                 }
 
                 Restart => self.restart(),
-                SwitchProfile(name) => match self.config_folder.lookup(&name).cloned() {
+                SwitchProfile(name) => match self.profile_folder.lookup(&name).cloned() {
                     Some(p) => {
                         self.switch_profile(p);
                         self.tray.notify_profile_switch(&name);

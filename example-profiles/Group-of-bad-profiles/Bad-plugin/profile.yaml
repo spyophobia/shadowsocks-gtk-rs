@@ -1,0 +1,7 @@
+---
+# This profile is well-defined and sslocal should launch successfully.
+# However the plugin is misbehaving and errors.
+
+mode: "config-file"
+
+config_path: "./ss.json"

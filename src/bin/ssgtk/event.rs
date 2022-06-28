@@ -7,8 +7,8 @@ use crate::io::profile_loader::Profile;
 #[derive(Debug, Clone)]
 pub enum AppEvent {
     // from GUI
-    BacklogShow,
-    BacklogHide,
+    LogViewerShow,
+    LogViewerHide,
     SwitchProfile(Profile),
     ManualStop,
     SetNotify(NotifyMethod),

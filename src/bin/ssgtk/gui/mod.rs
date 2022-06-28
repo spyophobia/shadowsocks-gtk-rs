@@ -2,7 +2,7 @@
 
 // public members
 pub mod app;
-pub mod backlog;
+pub mod log_viewer;
 pub mod notification;
 pub mod tray;
 

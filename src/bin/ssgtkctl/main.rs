@@ -46,8 +46,8 @@ fn main() -> io::Result<()> {
 fn print_socket_egs() {
     use APICommand::*;
     let egs = vec![
-        BacklogShow,
-        BacklogHide,
+        LogViewerShow,
+        LogViewerHide,
         SetNotify(NotifyMethod::Toast),
         Restart,
         SwitchProfile("Example Profile".into()),

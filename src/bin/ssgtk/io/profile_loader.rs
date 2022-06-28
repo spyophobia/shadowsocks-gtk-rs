@@ -16,16 +16,8 @@ use itertools::Itertools;
 use lazy_static::lazy_static;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
+use shadowsocks_gtk_rs::consts::*;
 use which::which;
-
-/// The default binary to lookup in $PATH, if not overridden by profile.
-const SSLOCAL_DEFAULT_LOOKUP_NAME: &str = "sslocal";
-/// The existence of this file in a directory marks the directory
-/// as ignored during the loading process.
-const LOAD_IGNORE_FILE_NAME: &str = ".ss_ignore";
-/// The existence of this file in a directory indicates that
-/// this directory is a launch profile.
-const CONFIG_FILE_NAME: &str = "profile.yaml";
 
 lazy_static! {
     /// The resolved full path to the default binary, if not overridden by profile.

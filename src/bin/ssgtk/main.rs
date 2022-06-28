@@ -1,5 +1,6 @@
 use gui::app;
 use log::SetLoggerError;
+use shadowsocks_gtk_rs::consts::*;
 
 mod clap_def;
 mod event;
@@ -22,10 +23,7 @@ fn logger_init(relative_verbosity: i32) -> Result<(), SetLoggerError> {
     use log::LevelFilter::*;
     use simplelog::{ColorChoice, ConfigBuilder, TermLogger, TerminalMode};
 
-    /// 0: `Error`, 1: `Warn`, 2: `Info`, 3: `Debug`, 4: `Trace`
-    pub const DEFAULT_LEVEL: i32 = 2;
-
-    let level_filter = match DEFAULT_LEVEL + relative_verbosity {
+    let level_filter = match DEFAULT_LOG_LEVEL + relative_verbosity {
         0 => Error,
         1 => Warn,
         2 => Info,

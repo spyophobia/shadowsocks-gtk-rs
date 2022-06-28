@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 /// How to send the user a notification?
 #[derive(Debug, strum::Display, Clone, Copy, PartialEq, Eq, Sequence, ValueEnum, Serialize, Deserialize)]
+// IMPRV: can we do something akin to `serde(rename_all = "kebab-case")`?
 pub enum NotifyMethod {
     /// Do nothing.
     #[clap(name = "disable")]

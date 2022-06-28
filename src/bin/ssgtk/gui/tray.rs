@@ -1,6 +1,6 @@
 //! This module contains code that creates a tray item.
 
-use std::{fmt, path::Path, rc::Rc, sync::RwLock};
+use std::{path::Path, rc::Rc, sync::RwLock};
 
 use crossbeam_channel::Sender;
 use derivative::Derivative;
@@ -31,7 +31,7 @@ enum ProfileMenuItem {
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct TrayItem {
-    #[derivative(Debug(format_with = "ai_omit"))]
+    #[derivative(Debug(format_with = "shadowsocks_gtk_rs::util::hacks::omit_ai"))]
     ai: AppIndicator,
     menu: Menu,
     /// The `ListeningRadioMenuItem` for the stop button.
@@ -40,10 +40,6 @@ pub struct TrayItem {
     profile_items: Vec<ListeningRadioMenuItem>,
     /// The `ListeningRadioMenuItem`s for the list of notify methods.
     notify_method_items: Vec<ListeningRadioMenuItem>,
-}
-
-fn ai_omit(_: &AppIndicator, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-    write!(fmt, "*AppIndicator info omitted*")
 }
 
 impl TrayItem {
@@ -106,10 +102,10 @@ impl TrayItem {
         tray.menu.append(&notify_selector_item);
 
         // add other static menu entries
-        let backlog_tx = events_tx.clone();
+        let log_viewer_tx = events_tx.clone();
         tray.add_menu_item("Show sslocal Output", move || {
-            if let Err(_) = backlog_tx.send(AppEvent::BacklogShow) {
-                error!("Trying to send BacklogShow event, but all receivers have hung up.");
+            if let Err(_) = log_viewer_tx.send(AppEvent::LogViewerShow) {
+                error!("Trying to send LogViewerShow event, but all receivers have hung up.");
             }
         });
         let quit_tx = events_tx.clone();
@@ -120,7 +116,7 @@ impl TrayItem {
         });
 
         // Wrap up
-        tray.finalise();
+        tray.finalize();
         tray
     }
 
@@ -238,7 +234,7 @@ impl TrayItem {
     }
 
     /// Compose the menu to make ready for display.
-    fn finalise(&mut self) {
+    fn finalize(&mut self) {
         self.menu.show_all();
         self.ai.set_menu(&mut self.menu);
     }

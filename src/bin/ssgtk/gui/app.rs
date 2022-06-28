@@ -15,7 +15,10 @@ use log::{debug, error, info, trace, warn};
 
 #[cfg(feature = "runtime-api")]
 use shadowsocks_gtk_rs::runtime_api_msg::APICommand;
-use shadowsocks_gtk_rs::{notify_method::NotifyMethod, util};
+use shadowsocks_gtk_rs::{
+    notify_method::NotifyMethod,
+    util::{self, mutex_lock},
+};
 
 #[cfg(feature = "runtime-api")]
 use crate::io::runtime_api::APIListener;
@@ -30,7 +33,7 @@ use crate::{
 };
 
 use super::{
-    backlog::BacklogWindow,
+    log_viewer::LogViewerWindow,
     notification::{notify, Level},
     tray::TrayItem,
 };
@@ -102,7 +105,7 @@ struct GTKApp {
 
     // GUI components
     tray: TrayItem,
-    backlog_window: Option<BacklogWindow>,
+    log_viewer_window: Option<LogViewerWindow>,
 
     // misc
     notify_method: NotifyMethod,
@@ -180,7 +183,7 @@ impl GTKApp {
             api_cmds_rx,
 
             tray,
-            backlog_window: None,
+            log_viewer_window: None,
 
             notify_method: previous_state.notify_method,
         })
@@ -197,45 +200,46 @@ impl GTKApp {
         }
     }
 
-    /// Show the backlog window, if not already shown.
-    fn show_backlog(&mut self) {
-        match self.backlog_window.as_ref() {
+    /// Show the log viewer window, if not already shown.
+    fn show_log_viewer(&mut self) {
+        match self.log_viewer_window.as_ref() {
             Some(w) => {
-                debug!("Backlog window already showing; bringing to foreground");
+                debug!("Log viewer window already showing; bringing to foreground");
                 w.show();
             }
             None => {
                 let pm_inner = util::rwlock_read(&self.profile_manager);
+                let events_tx = self.events_tx.clone();
+                let backlog = mutex_lock(&pm_inner.backlog).clone();
+                let log_listener = pm_inner.new_listener();
 
-                debug!("Opening backlog window");
-                let mut window = BacklogWindow::with_backlog(Arc::clone(&pm_inner.backlog), self.events_tx.clone());
-                window.pipe(pm_inner.stdout_rx.clone());
-                window.pipe(pm_inner.stderr_rx.clone());
+                debug!("Opening log viewer window.");
+                let window = LogViewerWindow::new(events_tx, backlog, log_listener);
                 window.show();
 
-                self.backlog_window = Some(window);
+                self.log_viewer_window = Some(window);
             }
         }
     }
-    /// Drop the backlog window without emitting an extra close event.
+    /// Drop the log viewer window without emitting an extra close event.
     ///
     /// Useful when the window has already been closed by an external source
     /// and we only need to drop the object.
-    fn drop_backlog(&mut self) {
-        match self.backlog_window.take() {
-            None => debug!("Backlog window is None; nothing to drop"),
+    fn drop_log_viewer(&mut self) {
+        match self.log_viewer_window.take() {
+            None => debug!("Log viewer window is None; nothing to drop"),
             some => {
-                debug!("Dropping backlog window");
+                debug!("Dropping log viewer window");
                 drop(some);
             }
         }
     }
-    /// Close the backlog window if currently showing.
-    fn close_backlog(&mut self) {
-        match self.backlog_window.take() {
-            None => debug!("Backlog window is None; nothing to close"),
+    /// Close the log viewer window if currently showing.
+    fn close_log_viewer(&mut self) {
+        match self.log_viewer_window.take() {
+            None => debug!("Log viewer window is None; nothing to close"),
             Some(w) => {
-                debug!("Closing backlog window");
+                debug!("Closing log viewer window");
                 w.close();
                 drop(w);
             }
@@ -294,7 +298,7 @@ impl GTKApp {
 
         // drop all optional windows
         debug!("Closing all optional windows");
-        drop(self.backlog_window.take());
+        drop(self.log_viewer_window.take());
 
         gtk::main_quit();
     }
@@ -303,11 +307,12 @@ impl GTKApp {
     fn handle_app_events(&mut self) {
         use AppEvent::*;
         // using `while let` rather than `for` due to borrow checker issue
+        // IMPRV: can we?
         while let Some(event) = self.events_rx.try_iter().next() {
             trace!("Received an AppEvent: {:?}", event);
             match event {
-                BacklogShow => self.show_backlog(),
-                BacklogHide => self.drop_backlog(),
+                LogViewerShow => self.show_log_viewer(),
+                LogViewerHide => self.drop_log_viewer(),
                 SwitchProfile(p) => self.switch_profile(p),
                 ManualStop => self.stop(),
                 SetNotify(method) => self.set_notify_method(method),
@@ -340,10 +345,11 @@ impl GTKApp {
     fn handle_api_commands(&mut self) {
         use APICommand::*;
         // using `while let` rather than `for` due to borrow checker issue
+        // IMPRV: can we?
         while let Some(cmd) = self.api_cmds_rx.try_iter().next() {
             match cmd {
-                BacklogShow => self.show_backlog(),
-                BacklogHide => self.close_backlog(),
+                LogViewerShow => self.show_log_viewer(),
+                LogViewerHide => self.close_log_viewer(),
                 SetNotify(method) => {
                     self.set_notify_method(method);
                     self.tray.notify_notify_method_change(method);
@@ -367,7 +373,7 @@ impl GTKApp {
     }
 }
 
-/// Initialise all components and start the GTK main loop.
+/// Initialize all components and start the GTK main loop.
 pub fn run(args: &CliArgs) -> Result<(), AppStartError> {
     // init app
     let mut app = GTKApp::new(args)?;

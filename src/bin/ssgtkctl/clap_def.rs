@@ -40,14 +40,15 @@ pub struct CliArgs {
 }
 
 #[derive(Debug, Clone, Subcommand)]
+// IMPRV: can we do something akin to `serde(rename_all = "kebab-case")`?
 pub enum SubCmd {
-    /// Show the backlog window or bring it to foreground.
-    #[clap(name = "backlog-show")]
-    BacklogShow,
+    /// Show the log viewer window or bring it to foreground.
+    #[clap(name = "log-viewer-show")]
+    LogViewerShow,
 
-    /// Hide the backlog window if opened.
-    #[clap(name = "backlog-hide")]
-    BacklogHide,
+    /// Hide the log viewer window if opened.
+    #[clap(name = "log-viewer-hide")]
+    LogViewerHide,
 
     /// Use a particular method for all future notifications.
     #[clap(name = "set-notify")]
@@ -81,8 +82,8 @@ pub enum SubCmd {
 impl From<SubCmd> for APICommand {
     fn from(cmd: SubCmd) -> Self {
         match cmd {
-            SubCmd::BacklogShow => APICommand::BacklogShow,
-            SubCmd::BacklogHide => APICommand::BacklogHide,
+            SubCmd::LogViewerShow => APICommand::LogViewerShow,
+            SubCmd::LogViewerHide => APICommand::LogViewerHide,
             SubCmd::SetNotify { notify_method } => APICommand::SetNotify(notify_method),
             SubCmd::Restart => APICommand::Restart,
             SubCmd::SwitchProfile { profile_name } => APICommand::SwitchProfile(profile_name),

@@ -8,10 +8,11 @@ use serde::{Deserialize, Serialize};
 use crate::notify_method::NotifyMethod;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum APICommand {
     // GUI
-    BacklogShow,
-    BacklogHide,
+    LogViewerShow,
+    LogViewerHide,
     SetNotify(NotifyMethod),
 
     // core
@@ -25,8 +26,8 @@ impl fmt::Display for APICommand {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use APICommand::*;
         let msg = match self {
-            BacklogShow => "Show Backlog".into(),
-            BacklogHide => "Hide Backlog".into(),
+            LogViewerShow => "Show log viewer".into(),
+            LogViewerHide => "Hide log viewer".into(),
             SetNotify(method) => format!("Set notification method to {}", method),
 
             Restart => "Restart current profile".into(),

@@ -2,11 +2,7 @@
 
 - [Common Questions and Answers](#common-questions-and-answers)
   - [My tray icon is blank.](#my-tray-icon-is-blank)
-  - [How to customise configuration?](#how-to-customise-configuration)
-    - [Basic, single-profile config](#basic-single-profile-config)
-    - [Grouped multi-profile config](#grouped-multi-profile-config)
-    - [Other miscellaneous details](#other-miscellaneous-details)
-  - [Can I bind a shortcut to \<some action>?](#can-i-bind-a-shortcut-to-some-action)
+  - [Can I bind a shortcut to \<some action\>?](#can-i-bind-a-shortcut-to-some-action)
   - [Why did you pick GTK instead of QT?](#why-did-you-pick-gtk-instead-of-qt)
   - [Why aren't you using GTK4?](#why-arent-you-using-gtk4)
   - [Why target `sslocal` command line API?](#why-target-sslocal-command-line-api)
@@ -23,60 +19,8 @@ After a reboot the icon should be picked up.
 
 Alternatively `ssgtk` has launch parameters `--icon-theme-dir` and `--icon-name` if you want to use a custom icon.
 
-## How to customise configuration?
 
-### Basic, single-profile config
-
-```
-# An example
-My-profile
-├── profile.yaml
-└── ...<other files>
-```
-We will call this a "profile directory". You can name this directory anything you want; `My-profile` is only an example.
-By default the displayed name of this profile is the directory name (`My-profile` in this case),
-but this can be customized in `profile.yaml`.
-
-`profile.yaml` is the definition file for a profile: a directory is considered a "profile directory"
-only if it contains a `profile.yaml`.
-You may put other profile-specific files and directories under this directory too
-if you need to reference them from `profile.yaml`, such as a `ss-config.json`.
-
-For examples of how to manually write a `profile.yaml`,
-see [/example-profiles/Group-of-good-profiles](/example-profiles/Group-of-good-profiles).
-
-### Grouped multi-profile config
-
-```
-# An example
-Root-group
-├── My-profile-A
-│   ├── profile.yaml
-│   └── ...<other files>
-└── My-nested-group
-    ├── My-profile-B
-    │   ├── profile.yaml
-    │   └── ...<other files>
-    └── My-profile-C
-        └── profile.yaml
-```
-You can put multiple "profile directories" under a single "group directory" to make a group.
-The group's display name is the name of this "group directory".
-
-You can nest "group directories" to as many layers as you want, but I doubt its practicality beyond layer 2 or 3.
-
-Note that a "group directory" **should not** have regular files as its **direct descendants**.
-So in this example, you cannot have a `Root-group/foo.txt` or `Root-group/My-nested-group/bar.conf`.
-
-Also note that symlinks are not currently supported in "group directories". I recognise their potential usefulness,
-but I am concerned about circular symlinking causing unnecessary trouble.
-
-### Other miscellaneous details
-
- - You can create an empty file named `.ss_ignore` in any "profile directory" or "group directory" to
-     disable it and all its children.
-
-## Can I bind a shortcut to \<some action>?
+## Can I bind a shortcut to \<some action\>?
 
  - Yes! `runtime-api` is a default feature of this crate, which provides a `ssgtkctl` binary.
      You can use it to make the application do various things. All you need to do is to bind a system shortcut to it.
@@ -84,7 +28,7 @@ but I am concerned about circular symlinking causing unnecessary trouble.
 ```sh
 ssgtkctl --help
 ```
- - Underneath the hood, the `runtime-api` feature starts a listener on a Unix socket,
+ - Underneath the hood, `ssgtk` built with the `runtime-api` feature starts a listener on a Unix socket,
      to which you can send commands in [JSON5](https://json5.org/).
      The `ssgtkctl` binary is merely a delegate to simplify the sending of said command.
  - If you wish to interface with the Unix socket directly, you can take a look at some example commands by running:

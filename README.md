@@ -9,10 +9,10 @@ because there already exists plenty of alternative solutions for Windows and Mac
 
 This package contains two binaries:
 
-| Binary     | Functionality                                                                           |
-|------------|-----------------------------------------------------------------------------------------|
-| `ssgtk`    | The main executable; launches the GUI application.                                      |
-| `ssgtkctl` | The runtime API controller; see [Q&A](res/QnA.md#can-i-bind-a-shortcut-to-some-action). |
+| Binary     | Functionality                                                                            |
+|------------|------------------------------------------------------------------------------------------|
+| `ssgtk`    | The main executable; launches the GUI application.                                       |
+| `ssgtkctl` | The runtime API controller; see [Q&A](/res/QnA.md#can-i-bind-a-shortcut-to-some-action). |
 
 ## Table of Contents
 
@@ -42,7 +42,7 @@ feel free to raise an issue. Or better yet, submit a PR if you can!
 
 ### Read the Documentation!
 
-If you are using this application for the first time, you probably want to read the [configuration guide](res/QnA.md#how-to-customise-configuration) first.
+**If you are using this application for the first time, you should first read the [configuration guide](/res/config-guide.md).**
 
 ### Arch Linux and Derivatives
 
@@ -96,5 +96,5 @@ cd shadowsocks-gtk-rs
 
 ## Useful Reading
 
- - [Q&A](res/QnA.md)
- - [Stay Safe](res/stay-safe.md)
+ - [Q&A](/res/QnA.md)
+ - [Stay Safe](/res/stay-safe.md)

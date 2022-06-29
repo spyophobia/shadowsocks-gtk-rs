@@ -1,6 +1,8 @@
 ---
 # This is an example of a good profile in "config-file" mode
 
+# This mode is likely what you want to use, unless you know what you're doing
+
 # Mandatory
 # Specifies "config-file" mode
 mode: "config-file"
@@ -21,10 +23,10 @@ display_name: "Example Profile (config-file mode)"
 #bin_path: "/usr/bin/sslocal"
 
 # Mandatory
-config_path: "./ss.json"
+config_path: "./ss.json5"
 
-# Mandatory
-# A list of arguments passed to `sslocal`
+# Optional
+# A list of extra arguments passed to `sslocal`
 # Defaults to `[]` (empty)
 extra_args:
   - "--tcp-fast-open"

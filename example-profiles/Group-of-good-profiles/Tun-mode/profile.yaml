@@ -1,0 +1,63 @@
+---
+# This is an example of a good profile in "tun" mode
+
+# Note that this requires your `sslocal` binary to have been built with the `local-tun` feature
+# See https://github.com/shadowsocks/shadowsocks-rust#optional-features
+# You should also allow your `sslocal` binary to manage interfaces without root privileges
+# by running `sudo setcap 'CAP_NET_ADMIN+ep' /path/to/sslocal`
+
+# This mode is useful if you want a true "global" mode, but it requires additional routing setup
+# See https://sweetcode.io/routing-all-traffic-through-a-vpn-gateway-on-linux/
+
+# Mandatory
+# Specifies "tun" mode
+mode: "tun"
+
+# Optional
+# The name of this profile
+# Defaults to current directory's name if unset
+display_name: "Example Profile (tun mode)"
+
+# Optional
+# The working directory of `sslocal`
+# Defaults to the currently directory of this YAML file if unset
+#pwd: "."
+
+# Optional
+# Absolute path to the `sslocal` binary
+# Defaults to looking up `sslocal` in $PATH if unset
+#bin_path: "/usr/bin/sslocal"
+
+# Mandatory
+# Must contain exactly two values in this order
+local_addr:
+  - "::" # bind address, `0.0.0.0` == "All IPv4", `::` == "All IPv6 & IPv4"
+  - 1080 # port number
+
+# Mandatory
+# Must contain exactly two values in this order
+server_addr:
+  - "www.example.org" # server address
+  - 443 # port number
+
+# Mandatory
+password: "foobar"
+
+# Mandatory
+encrypt_method: "aes-256-gcm"
+
+# Optional
+# The name of the TUN interface
+# Defaults to letting the OS assign one
+#if_name: "my_tun69420"
+
+# Optional (although you probably should set this)
+# Assign the TUN interface an address and subnet
+# Defaults to None
+if_addr: "10.13.37.1/24"
+
+# Optional
+# A list of extra arguments passed to `sslocal`
+# Defaults to `[]` (empty)
+extra_args:
+  - "--log-without-time"

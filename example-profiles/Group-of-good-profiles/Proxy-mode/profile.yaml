@@ -1,6 +1,9 @@
 ---
 # This is an example of a good profile in "proxy" mode
 
+# This mode is useful if you have an existing config file for `sslocal`
+# or if you want maximum flexibility
+
 # Mandatory
 # Specifies "proxy" mode
 mode: "proxy"
@@ -39,7 +42,7 @@ password: "foobar"
 encrypt_method: "aes-256-gcm"
 
 # Optional
-# A list of arguments passed to `sslocal`
+# A list of extra arguments passed to `sslocal`
 # Defaults to `[]` (empty)
 extra_args:
   - "--single-threaded"

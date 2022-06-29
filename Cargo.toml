@@ -14,9 +14,8 @@ repository = "https://github.com/spyophobia/shadowsocks-gtk-rs"
 version = "0.3.1"
 
 [features]
-default = ["runtime-api", "tun-protocol"]
+default = ["runtime-api"]
 runtime-api = ["json5"]
-tun-protocol = []
 
 [dependencies]
 bus = "2.2.4"
@@ -29,6 +28,7 @@ enum-iterator = "1.1.2"
 fs2 = "0.4.3"
 glib = "0.15.11"
 gtk = "0.15.5"
+ipnet = {version = "2.5.0", features = ["serde"]}
 itertools = "0.10.3"
 json5 = {version = "0.4.1", optional = true}
 lazy_static = "1.4.0"

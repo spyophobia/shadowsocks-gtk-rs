@@ -12,6 +12,7 @@ use std::{
 
 use derivative::Derivative;
 use duct::{cmd, Handle};
+use ipnet::IpNet;
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use log::{error, info, warn};
@@ -40,32 +41,24 @@ trait ToLaunchArgs {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfigFileOptions {
     config_path: PathBuf,
-    extra_args: Option<Vec<String>>,
 }
 impl ToLaunchArgs for ConfigFileOptions {
     fn to_launch_args(&self) -> Vec<OsString> {
-        // config file
-        let mut args = vec!["--config".into(), (&self.config_path).into()];
-        // extra args
-        if let Some(extra) = &self.extra_args {
-            args.extend(extra.iter().map_into())
-        }
-        args
+        vec!["--config".into(), (&self.config_path).into()]
     }
 }
 
-/// Fields for a "Proxy"-type ProfileConfig.
+/// Common fields for ProfileConfig types that do not use a config file.
 #[derive(Derivative, Clone, Serialize, Deserialize)]
 #[derivative(Debug)]
-pub struct ProxyOptions {
+pub struct ConnectOptions {
     local_addr: (IpAddr, u16),
     server_addr: (String, u16),
     #[derivative(Debug(format_with = "password_omit"))]
     password: String,
     encrypt_method: String,
-    extra_args: Option<Vec<String>>,
 }
-impl ToLaunchArgs for ProxyOptions {
+impl ToLaunchArgs for ConnectOptions {
     fn to_launch_args(&self) -> Vec<OsString> {
         let mut args = vec![];
         // local address
@@ -90,31 +83,63 @@ impl ToLaunchArgs for ProxyOptions {
         args.extend_from_slice(&["--password".into(), (&self.password).into()]);
         // encrypt_method
         args.extend_from_slice(&["--encrypt-method".into(), (&self.encrypt_method).into()]);
-        // extra args
-        if let Some(extra) = &self.extra_args {
-            args.append(&mut extra.iter().map_into().collect())
-        }
         args
-    }
-}
-
-/// Fields for a "Tun"-type ProfileConfig.
-#[cfg(feature = "tun-protocol")]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TunOptions {
-    // TODO: add fields
-    extra_args: Option<Vec<String>>,
-}
-#[cfg(feature = "tun-protocol")]
-impl ToLaunchArgs for TunOptions {
-    fn to_launch_args(&self) -> Vec<OsString> {
-        todo!()
     }
 }
 
 /// Helper function for `derivative(Debug)`.
 fn password_omit(_: &str, fmt: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     write!(fmt, "*hidden*")
+}
+
+/// Fields for a "Proxy"-type ProfileConfig
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProxyOptions {
+    // TODO: Add protocol selection
+}
+impl ToLaunchArgs for ProxyOptions {
+    fn to_launch_args(&self) -> Vec<OsString> {
+        vec![]
+    }
+}
+
+/// Fields for a "Tun"-type ProfileConfig.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TunOptions {
+    if_name: Option<String>,
+    if_addr: Option<IpNet>,
+}
+impl ToLaunchArgs for TunOptions {
+    fn to_launch_args(&self) -> Vec<OsString> {
+        // protocol
+        let mut args = vec!["--protocol".into(), "tun".into()];
+        // interface name
+        if let Some(if_name) = &self.if_name {
+            args.extend_from_slice(&["--tun-interface-name".into(), if_name.into()]);
+        }
+        // interface address
+        if let Some(if_addr) = &self.if_addr {
+            args.extend_from_slice(&["--tun-interface-address".into(), if_addr.to_string().into()]);
+        }
+        args
+    }
+}
+
+/// Extra configs for advanced users.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AdvancedOptions {
+    // IMPRV: more to come
+    extra_args: Option<Vec<String>>,
+}
+impl ToLaunchArgs for AdvancedOptions {
+    fn to_launch_args(&self) -> Vec<OsString> {
+        let mut args = vec![];
+        // extra args
+        if let Some(extra) = &self.extra_args {
+            args.append(&mut extra.iter().map_into().collect())
+        }
+        args
+    }
 }
 
 /// The static configuration for a profile. Represents the file on disk faithfully.
@@ -128,6 +153,8 @@ pub enum ProfileConfig {
         metadata: MetadataOverride,
         #[serde(flatten)]
         opts: ConfigFileOptions,
+        #[serde(flatten)]
+        adv_opts: AdvancedOptions,
     },
     /// Profile launches `sslocal` in proxy mode.
     #[serde(rename = "proxy")]
@@ -135,16 +162,23 @@ pub enum ProfileConfig {
         #[serde(flatten)]
         metadata: MetadataOverride,
         #[serde(flatten)]
+        conn_opts: ConnectOptions,
+        #[serde(flatten)]
         opts: ProxyOptions,
+        #[serde(flatten)]
+        adv_opts: AdvancedOptions,
     },
     /// Profile launches `sslocal` in tun mode.
-    #[cfg(feature = "tun-protocol")]
     #[serde(rename = "tun")]
     Tun {
         #[serde(flatten)]
         metadata: MetadataOverride,
         #[serde(flatten)]
+        conn_opts: ConnectOptions,
+        #[serde(flatten)]
         opts: TunOptions,
+        #[serde(flatten)]
+        adv_opts: AdvancedOptions,
     },
 }
 
@@ -154,17 +188,39 @@ impl ProfileConfig {
         match self {
             ConfigFile { metadata, .. } => metadata,
             Proxy { metadata, .. } => metadata,
-            #[cfg(feature = "tun-protocol")]
             Tun { metadata, .. } => metadata,
         }
     }
     fn to_launch_args(&self) -> Vec<OsString> {
         use ProfileConfig::*;
         match self {
-            ConfigFile { opts, .. } => opts.to_launch_args(),
-            Proxy { opts, .. } => opts.to_launch_args(),
-            #[cfg(feature = "tun-protocol")]
-            Tun { opts, .. } => opts.to_launch_args(),
+            ConfigFile { opts, adv_opts, .. } => {
+                let mut args = opts.to_launch_args();
+                args.append(&mut adv_opts.to_launch_args());
+                args
+            }
+            Proxy {
+                conn_opts,
+                opts,
+                adv_opts,
+                ..
+            } => {
+                let mut args = conn_opts.to_launch_args();
+                args.append(&mut opts.to_launch_args());
+                args.append(&mut adv_opts.to_launch_args());
+                args
+            }
+            Tun {
+                conn_opts,
+                opts,
+                adv_opts,
+                ..
+            } => {
+                let mut args = conn_opts.to_launch_args();
+                args.append(&mut opts.to_launch_args());
+                args.append(&mut adv_opts.to_launch_args());
+                args
+            }
         }
     }
 }

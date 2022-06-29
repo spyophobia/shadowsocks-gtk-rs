@@ -1,3 +1,5 @@
+// trivia: shadowsocks-rust supports JSON5, which means you can have comments like this
+// among other useful features. See https://json5.org/.
 {
   "servers": [
     {

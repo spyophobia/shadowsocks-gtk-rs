@@ -97,4 +97,5 @@ cd shadowsocks-gtk-rs
 ## Useful Reading
 
  - [Q&A](/res/QnA.md)
+ - [Changelog](/CHANGELOG.md)
  - [Stay Safe](/res/stay-safe.md)

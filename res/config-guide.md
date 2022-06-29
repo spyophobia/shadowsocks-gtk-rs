@@ -22,7 +22,7 @@ This is the basic directory structure of a profile directory. You can name this 
 By default the displayed name of this profile is the directory name (`My-profile` in this case),
 but this can be customized in `profile.yaml`.
 
-The only required file in this directory is `profile.yaml`. See [profile.yaml](#profileyaml).
+The only required file in this directory is `profile.yaml`. See below.
 You may put other profile-specific files and directories under this directory too
 if you need to reference them from `profile.yaml`, such as a `ss-config.json`.
 

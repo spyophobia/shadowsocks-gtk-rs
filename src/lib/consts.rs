@@ -18,3 +18,6 @@ pub const LOAD_IGNORE_FILE_NAME: &str = ".ss_ignore";
 
 /// The default binary to lookup in $PATH, if not overridden by profile.
 pub const SSLOCAL_DEFAULT_LOOKUP_NAME: &str = "sslocal";
+
+/// The name shown when mouseover on the tray icon.
+pub const TRAY_TITLE: &str = "Shadowsocks GTK";

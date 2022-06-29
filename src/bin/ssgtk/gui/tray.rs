@@ -7,11 +7,9 @@ use derivative::Derivative;
 use gtk::{prelude::*, Menu, MenuItem, RadioMenuItem, SeparatorMenuItem};
 use libappindicator::{AppIndicator, AppIndicatorStatus};
 use log::{debug, error, warn};
-use shadowsocks_gtk_rs::{notify_method::NotifyMethod, util};
+use shadowsocks_gtk_rs::{consts::*, notify_method::NotifyMethod, util};
 
 use crate::{event::AppEvent, io::profile_loader::ProfileFolder};
-
-const TRAY_TITLE: &str = "Shadowsocks GTK";
 
 /// A `RadioMenuItem` with its listen enable flag.
 ///

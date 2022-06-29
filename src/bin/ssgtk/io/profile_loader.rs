@@ -144,10 +144,9 @@ impl ToLaunchArgs for AdvancedOptions {
 
 /// The static configuration for a profile. Represents the file on disk faithfully.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "mode")] // See https://serde.rs/enum-representations.html#internally-tagged
+#[serde(tag = "mode", rename_all = "kebab-case")] // See https://serde.rs/enum-representations.html#internally-tagged
 pub enum ProfileConfig {
     /// Profile launches `sslocal` with arbitrary config file using `sslocal --config <CONFIG>`.
-    #[serde(rename = "config-file")]
     ConfigFile {
         #[serde(flatten)]
         metadata: MetadataOverride,
@@ -157,7 +156,6 @@ pub enum ProfileConfig {
         adv_opts: AdvancedOptions,
     },
     /// Profile launches `sslocal` in proxy mode.
-    #[serde(rename = "proxy")]
     Proxy {
         #[serde(flatten)]
         metadata: MetadataOverride,
@@ -169,7 +167,6 @@ pub enum ProfileConfig {
         adv_opts: AdvancedOptions,
     },
     /// Profile launches `sslocal` in tun mode.
-    #[serde(rename = "tun")]
     Tun {
         #[serde(flatten)]
         metadata: MetadataOverride,

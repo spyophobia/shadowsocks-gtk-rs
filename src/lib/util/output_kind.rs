@@ -2,10 +2,8 @@
 //! on `stdout` or `stderr`.
 
 #[derive(Debug, strum::Display, Clone, Copy, PartialEq, Eq)]
-// IMPRV: can we do something akin to `serde(rename_all = "kebab-case")`?
+#[strum(serialize_all = "kebab-case")]
 pub enum OutputKind {
-    #[strum(serialize = "stdout")]
     Stdout,
-    #[strum(serialize = "stderr")]
     Stderr,
 }

@@ -307,7 +307,6 @@ impl GTKApp {
     fn handle_app_events(&mut self) {
         use AppEvent::*;
         // using `while let` rather than `for` due to borrow checker issue
-        // IMPRV: can we?
         while let Some(event) = self.events_rx.try_iter().next() {
             trace!("Received an AppEvent: {:?}", event);
             match event {
@@ -345,7 +344,6 @@ impl GTKApp {
     fn handle_api_commands(&mut self) {
         use APICommand::*;
         // using `while let` rather than `for` due to borrow checker issue
-        // IMPRV: can we?
         while let Some(cmd) = self.api_cmds_rx.try_iter().next() {
             match cmd {
                 LogViewerShow => self.show_log_viewer(),

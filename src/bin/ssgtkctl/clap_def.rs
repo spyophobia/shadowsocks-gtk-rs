@@ -40,18 +40,15 @@ pub struct CliArgs {
 }
 
 #[derive(Debug, Clone, Subcommand)]
-// IMPRV: can we do something akin to `serde(rename_all = "kebab-case")`?
+#[clap(rename_all = "kebab-case")]
 pub enum SubCmd {
     /// Show the log viewer window or bring it to foreground.
-    #[clap(name = "log-viewer-show")]
     LogViewerShow,
 
     /// Hide the log viewer window if opened.
-    #[clap(name = "log-viewer-hide")]
     LogViewerHide,
 
     /// Use a particular method for all future notifications.
-    #[clap(name = "set-notify")]
     SetNotify {
         /// The notification method to use.
         #[clap(index = 1, value_name = "METHOD", value_enum)]
@@ -59,11 +56,9 @@ pub enum SubCmd {
     },
 
     /// Restart the currently running sslocal instance.
-    #[clap(name = "restart")]
     Restart,
 
     /// Switch to a new profile by starting a new sslocal instance.
-    #[clap(name = "switch-profile")]
     SwitchProfile {
         /// The display name of the profile to switch to (CASE SENSITIVE)
         #[clap(index = 1, value_name = "NAME")]
@@ -71,11 +66,9 @@ pub enum SubCmd {
     },
 
     /// Stop the currently running sslocal instance.
-    #[clap(name = "stop")]
     Stop,
 
     /// Quit the application.
-    #[clap(name = "quit")]
     Quit,
 }
 

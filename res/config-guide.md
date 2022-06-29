@@ -24,7 +24,7 @@ but this can be customized in `profile.yaml`.
 
 The only required file in this directory is `profile.yaml`. See below.
 You may put other profile-specific files and directories under this directory too
-if you need to reference them from `profile.yaml`, such as a `ss-config.json`.
+if you need to reference them from `profile.yaml`, such as a `ss.json5`.
 
 ### The config file: `profile.yaml`
 

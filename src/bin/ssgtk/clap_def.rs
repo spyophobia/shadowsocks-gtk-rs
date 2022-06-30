@@ -1,35 +1,14 @@
 //! This module contains code that define the CLI API.
 
 use std::{
-    env, fs,
+    fs,
     path::{Path, PathBuf},
 };
 
 use clap::{ArgAction, ErrorKind, IntoApp, Parser};
-use lazy_static::lazy_static;
+use shadowsocks_gtk_rs::consts::*;
 
 use crate::io::app_state::{AppState, AppStateError};
-
-lazy_static! {
-    static ref DEFAULT_CONFIG_DIR: PathBuf =
-        PathBuf::from(env::var("HOME").expect("$HOME not set")).join(".config/shadowsocks-gtk-rs");
-    static ref PROFILES_DIR_DEFAULT: PathBuf = DEFAULT_CONFIG_DIR.join("profiles");
-    static ref PROFILES_DIR_DEFAULT_STR: String = PROFILES_DIR_DEFAULT
-        .to_str()
-        .expect("default profiles-dir not UTF-8")
-        .into();
-    static ref APP_STATE_PATH_DEFAULT: PathBuf = DEFAULT_CONFIG_DIR.join("app-state.yaml");
-    static ref APP_STATE_PATH_DEFAULT_STR: String = APP_STATE_PATH_DEFAULT
-        .to_str()
-        .expect("default app-state-path not UTF-8")
-        .into();
-    static ref RUNTIME_API_SOCKET_PATH_DEFAULT: PathBuf =
-        PathBuf::from(env::var("XDG_RUNTIME_DIR").unwrap_or("/tmp".into())).join("shadowsocks-gtk-rs.sock");
-    static ref RUNTIME_API_SOCKET_PATH_DEFAULT_STR: String = RUNTIME_API_SOCKET_PATH_DEFAULT
-        .to_str()
-        .expect("default runtime-api-socket-path not UTF-8")
-        .into();
-}
 
 #[derive(Debug, Clone, Parser)]
 #[clap(name = "ssgtk", author, version, about, disable_help_subcommand = true)]

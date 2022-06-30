@@ -1,19 +1,9 @@
 //! This module contains code that define the CLI API.
 
-use std::{env, path::PathBuf};
+use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
-use lazy_static::lazy_static;
-use shadowsocks_gtk_rs::{notify_method::NotifyMethod, runtime_api_msg::APICommand};
-
-lazy_static! {
-    static ref RUNTIME_API_SOCKET_PATH_DEFAULT: PathBuf =
-        PathBuf::from(env::var("XDG_RUNTIME_DIR").unwrap_or("/tmp".into())).join("shadowsocks-gtk-rs.sock");
-    static ref RUNTIME_API_SOCKET_PATH_DEFAULT_STR: String = RUNTIME_API_SOCKET_PATH_DEFAULT
-        .to_str()
-        .expect("default runtime-api-socket-path not UTF-8")
-        .into();
-}
+use shadowsocks_gtk_rs::{consts::*, notify_method::NotifyMethod, runtime_api_msg::APICommand};
 
 #[derive(Debug, Clone, Parser)]
 #[clap(

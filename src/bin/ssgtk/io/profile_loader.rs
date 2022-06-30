@@ -14,16 +14,10 @@ use derivative::Derivative;
 use duct::{cmd, Handle};
 use ipnet::IpNet;
 use itertools::Itertools;
-use lazy_static::lazy_static;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use shadowsocks_gtk_rs::consts::*;
 use which::which;
-
-lazy_static! {
-    /// The resolved full path to the default binary, if not overridden by profile.
-    static ref SSLOCAL_DEFAULT_RESOLVED: Result<PathBuf, which::Error> = which(SSLOCAL_DEFAULT_LOOKUP_NAME);
-}
 
 /// Optional fields which allow a config to override its profile's default metadata.
 #[derive(Debug, Clone, Serialize, Deserialize)]

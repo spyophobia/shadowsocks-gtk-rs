@@ -6,7 +6,7 @@ use lazy_static::lazy_static;
 use which::which;
 
 /// Default buffer size for a `bus::Bus`.
-pub const BUS_BUFFER_SIZE: usize = 1000;
+pub const BUS_BUFFER_SIZE: usize = 20;
 
 /// The existence of this file in a directory indicates that
 /// this directory is a launch profile.

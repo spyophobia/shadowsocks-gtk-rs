@@ -1,6 +1,7 @@
 //! This module contains code that handles profile loading.
 
 use std::{
+    collections::HashSet,
     ffi::OsString,
     fmt,
     fs::read_to_string,
@@ -328,7 +329,7 @@ impl ProfileFolder {
     /// If a call to this function with the user-specified base path fails,
     /// then run the program as if there are no existing configs.
     pub fn from_path_recurse(path: impl AsRef<Path>) -> Result<Self, ProfileLoadError> {
-        let mut seen_names = vec![];
+        let mut seen_names = HashSet::new();
         Self::from_path_recurse_impl(path.as_ref(), &mut seen_names)?
             .ok_or(ProfileLoadError::EmptyGroup(path.as_ref().to_string_lossy().into()))
     }
@@ -336,7 +337,7 @@ impl ProfileFolder {
     /// Returns Ok(None) when this directory is ignored.
     fn from_path_recurse_impl(
         path: impl AsRef<Path>,
-        seen_names: &mut Vec<String>,
+        seen_names: &mut HashSet<String>,
     ) -> Result<Option<Self>, ProfileLoadError> {
         let path = path.as_ref().canonicalize()?;
         let full_path_str = path.to_string_lossy();
@@ -351,7 +352,7 @@ impl ProfileFolder {
         }
 
         // use directory name as folder's display name
-        let display_name = path
+        let default_display_name = path
             .file_name()
             .unwrap() // path has already been canonicalized
             .to_str()
@@ -369,11 +370,9 @@ impl ProfileFolder {
             let metadata = {
                 let mo = config.get_metadata_override().clone();
 
-                let display_name = mo.display_name.unwrap_or(display_name);
-                if seen_names.contains(&display_name) {
+                let display_name = mo.display_name.unwrap_or(default_display_name);
+                if let Some(_) = seen_names.replace(display_name.clone()) {
                     return Err(ProfileLoadError::NameConflict(display_name));
-                } else {
-                    seen_names.push(display_name.clone());
                 }
                 let pwd = mo.pwd.unwrap_or(path.clone());
                 let bin_path = mo
@@ -427,7 +426,7 @@ impl ProfileFolder {
             Err(ProfileLoadError::EmptyGroup(full_path_str.into()))
         } else {
             Ok(Some(ProfileFolder::Group(ProfileGroup {
-                display_name,
+                display_name: default_display_name,
                 content: subdirs,
             })))
         }

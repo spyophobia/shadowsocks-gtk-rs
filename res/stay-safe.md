@@ -2,10 +2,10 @@
 
 As you may know, Shadowsocks is an ecosystem of software that is adversarial in nature. You might even say it's political in nature. It was built to fight against one opponent and one opponent only (a very powerful one, mind you) - People's Republic of China's great censoring machine. This opponent would go to great lengths to make sure that the values advocated by Shadowsocks, namely freedom of information and freedom of speech, are completely snuffed and buried, using methods including but not limited to:
 
- - [forced censorship of any mention of Shadowsocks anywhere it can](https://web.archive.org/web/20210307021605/https://www.baidu.com/s?ie=UTF-8&wd=shadowsocks);
- - [develop sophisticated, specifically-targeted systems (active & passive) to detect and ban Shadowsocks traffic](https://web.archive.org/web/20201204181712/https://blog.torproject.org/learning-more-about-gfws-active-probing-system);
- - [physically intimidate Shadowsocks users and coerce them to stop using it](https://web.archive.org/web/20211010001125/https://difang.gmw.cn/roll2/2020-07/29/content_123387620.htm);
- - [twist its own laws and constitution to unscrupulously convict and imprison Shadowsocks distributors](https://web.archive.org/web/20211006150300/https://zj.qq.com/a/20180620/020541.htm);
+- [forced censorship of any mention of Shadowsocks anywhere it can](https://web.archive.org/web/20210307021605/https://www.baidu.com/s?ie=UTF-8&wd=shadowsocks);
+- [develop sophisticated, specifically-targeted systems (active & passive) to detect and ban Shadowsocks traffic](https://web.archive.org/web/20201204181712/https://blog.torproject.org/learning-more-about-gfws-active-probing-system);
+- [physically intimidate Shadowsocks users and coerce them to stop using it](https://web.archive.org/web/20211010001125/https://difang.gmw.cn/roll2/2020-07/29/content_123387620.htm);
+- [twist its own laws and constitution to unscrupulously convict and imprison Shadowsocks distributors](https://web.archive.org/web/20211006150300/https://zj.qq.com/a/20180620/020541.htm);
 
 Therefore it is not far-fetched at all to consider the possibility that our adversary could distribute maliciously modified versions of our software, in an attempt to spy on or even entrap our users. Unfortunately we do not have the ability or resources to combat such attempts directly, so our best defense is open-source.
 
@@ -18,6 +18,6 @@ That being said, I would like to believe that us developers and users of Shadows
 
 Despite the uphill battle we are faced with, I am personally determined to stay in and carry on this fight against government overreach and oppression. Will you too?
 
- ---
+---
 
  Spyophobia, written 2021-10-12, edited 2022-06-21

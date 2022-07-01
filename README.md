@@ -62,17 +62,17 @@ cargo install shadowsocks-gtk-rs
 ```
 
 #### Limitations of Using `cargo-install`
- - you will need to [manually install dependencies](#dependencies) first.
- - support files (e.g. desktop entry, icon) cannot be automatically installed.
+- you will need to [manually install dependencies](#dependencies) first.
+- support files (e.g. desktop entry, icon) cannot be automatically installed.
 
 ## Build
 
 ### Dependencies
 
- - A working installation of `rust`, see [here](https://www.rust-lang.org/tools/install).
- - The `sslocal` binary from [`shadowsocks-rust`](https://github.com/shadowsocks/shadowsocks-rust) as the backend.
-   - Strictly speaking, this is only required at runtime.
- - `GTK3` and `libappindicator`, using your distro's package manager.
+- A working installation of `rust`, see [here](https://www.rust-lang.org/tools/install).
+- The `sslocal` binary from [`shadowsocks-rust`](https://github.com/shadowsocks/shadowsocks-rust) as the backend.
+  - Strictly speaking, this is only required at runtime.
+- `GTK3` and `libappindicator`, using your distro's package manager.
 
 The latest versions are **highly recommended**.
 
@@ -96,6 +96,6 @@ cd shadowsocks-gtk-rs
 
 ## Useful Reading
 
- - [Q&A](/res/QnA.md)
- - [Changelog](/CHANGELOG.md)
- - [Stay Safe](/res/stay-safe.md)
+- [Q&A](/res/QnA.md)
+- [Changelog](/CHANGELOG.md)
+- [Stay Safe](/res/stay-safe.md)

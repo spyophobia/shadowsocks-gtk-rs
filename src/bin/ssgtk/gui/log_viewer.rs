@@ -149,7 +149,7 @@ mod test {
     use crossbeam_channel::unbounded as unbounded_channel;
     use shadowsocks_gtk_rs::consts::*;
 
-    use super::LogViewerWindow;
+    use crate::gui::log_viewer::LogViewerWindow;
 
     #[test]
     fn show_default_window_with_backlog() {

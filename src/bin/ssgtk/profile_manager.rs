@@ -507,11 +507,10 @@ mod test {
 
     use crossbeam_channel::unbounded as unbounded_channel;
     use log::{debug, LevelFilter};
-    use shadowsocks_gtk_rs::util::leaky_bucket::NaiveLeakyBucketConfig;
+    use shadowsocks_gtk_rs::util::{leaky_bucket::NaiveLeakyBucketConfig, rwlock_read, OutputKind};
     use simplelog::{Config, SimpleLogger};
 
-    use super::*;
-    use crate::io::profile_loader::ProfileFolder;
+    use crate::{io::profile_loader::ProfileFolder, profile_manager::ProfileManager};
 
     /// This test will always pass. You need to examine the outputs manually.
     ///

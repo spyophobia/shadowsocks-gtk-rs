@@ -82,7 +82,7 @@ impl NaiveLeakyBucket {
 mod test {
     use std::{thread::sleep, time::Duration};
 
-    use super::{NaiveLeakyBucket, NaiveLeakyBucketConfig};
+    use crate::util::leaky_bucket::{NaiveLeakyBucket, NaiveLeakyBucketConfig};
 
     #[test]
     fn size_0() {

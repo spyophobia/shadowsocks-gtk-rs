@@ -25,17 +25,16 @@ use crate::io::runtime_api::APIListener;
 use crate::{
     clap_def::CliArgs,
     event::AppEvent,
+    gui::{
+        log_viewer::LogViewerWindow,
+        notification::{notify, Level},
+        tray::TrayItem,
+    },
     io::{
         app_state::AppState,
         profile_loader::{Profile, ProfileFolder, ProfileLoadError},
     },
     profile_manager::ProfileManager,
-};
-
-use super::{
-    log_viewer::LogViewerWindow,
-    notification::{notify, Level},
-    tray::TrayItem,
 };
 
 #[derive(Debug)]

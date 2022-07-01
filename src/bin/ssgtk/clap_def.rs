@@ -67,7 +67,7 @@ fn validate_impl(mut args: CliArgs) -> Result<CliArgs, clap::Error> {
     let app_state_path = &args.app_state_path;
     if STATE_FILE_PATH_DEFAULT.eq(app_state_path) {
         // if default, then mkdir if absent
-        let _ = XDG_DIRS.place_state_file(STATE_FILE_NAME_DEFAULT)?;
+        XDG_DIRS.place_state_file(STATE_FILE_NAME_DEFAULT)?;
     }
 
     // validate and canonicalize icon_theme_dir
@@ -81,6 +81,16 @@ fn validate_impl(mut args: CliArgs) -> Result<CliArgs, clap::Error> {
             ))?;
         }
         args.icon_theme_dir = Some(abs_dir);
+    }
+
+    #[cfg(feature = "runtime-api")]
+    {
+        // validate runtime_api_socket_path
+        let runtime_api_socket_path = &args.runtime_api_socket_path;
+        if RUNTIME_API_SOCKET_PATH_DEFAULT.eq(runtime_api_socket_path) {
+            // if default, then mkdir if absent
+            XDG_DIRS.place_runtime_file(RUNTIME_API_SOCKET_NAME_DEFAULT)?;
+        }
     }
 
     Ok(args)

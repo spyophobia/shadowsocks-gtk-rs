@@ -19,6 +19,7 @@
 
 ### Fixes & maintenance
 
+- Fix a critical bug that makes `runtime-api` prevent app launch
 - `ssgtk` now sends a graphical notification if it fails to launch
 
 ## 0.4.0

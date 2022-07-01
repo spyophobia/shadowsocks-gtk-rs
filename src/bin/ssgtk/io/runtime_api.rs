@@ -109,22 +109,9 @@ impl APIListener {
     pub fn start(bind_addr: impl AsRef<Path>, cmds_tx: Sender<APICommand>) -> io::Result<Self> {
         // try to lock lock file
         let lock_file_path = {
-            let mut path = bind_addr.as_ref().to_path_buf();
-            let mut name = path
-                .file_name()
-                .ok_or(io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    "Listener socket path cannot be \"/\" or end with \"..\"",
-                ))?
-                .to_str()
-                .ok_or(io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    "Listener socket path is not UTF-8",
-                ))?
-                .to_string();
-            name.push_str(".lock");
-            path.set_file_name(name);
-            path
+            let mut path = bind_addr.as_ref().as_os_str().to_owned();
+            path.push(".lock");
+            PathBuf::from(path)
         };
         trace!("Creating and locking lock file at {:?}", lock_file_path);
         let lock_file = File::create(&lock_file_path)?;

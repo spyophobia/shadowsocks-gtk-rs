@@ -412,10 +412,7 @@ impl ProfileFolder {
             match Self::from_path_recurse_impl(&subdir_path, seen_names) {
                 Ok(Some(cf)) => subdirs.push(cf),
                 Ok(None) => info!("Ignored a directory and its children: {:?}", subdir_path),
-                Err(err) => {
-                    error!("Cannot load a subdirectory: {}", err);
-                    return Err(err);
-                }
+                Err(err) => return Err(err),
             };
         }
         if subdirs.is_empty() {

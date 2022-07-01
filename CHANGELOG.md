@@ -19,6 +19,8 @@
 
 ### Fixes & maintenance
 
+ - `ssgtk` now sends a graphical notification if it fails to launch
+
 ## 0.4.0
 
 ### Breaking changes

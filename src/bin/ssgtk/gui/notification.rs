@@ -39,10 +39,10 @@ pub fn notify(method: NotifyMethod, level: Level, text_1: impl AsRef<str>, text_
     use NotifyMethod::*;
     match method {
         Disable => {} // do nothing
-        Log => log(level, text_1.as_ref(), text_2.as_ref()),
-        Prompt => nonblocking_prompt(level.into(), text_1.as_ref(), text_2.as_ref()),
+        Log => notify_log(level, text_1.as_ref(), text_2.as_ref()),
+        Prompt => notify_nonblocking_prompt(level.into(), text_1.as_ref(), text_2.as_ref()),
         Toast => {
-            let res = toast(level.into(), text_1.as_ref(), text_2.as_ref());
+            let res = notify_toast(level.into(), text_1.as_ref(), text_2.as_ref());
             if let Err(err) = res {
                 error!("Failed to show toast notification: {}", err);
             }
@@ -51,7 +51,7 @@ pub fn notify(method: NotifyMethod, level: Level, text_1: impl AsRef<str>, text_
 }
 
 /// Notification impl for `NotifyMethod::Log`.
-fn log(level: Level, text_1: &str, text_2: &str) {
+pub fn notify_log(level: Level, text_1: &str, text_2: &str) {
     use Level::*;
     match level {
         Info => info!("Notify-Info: {}, {}", text_1, text_2),
@@ -61,7 +61,7 @@ fn log(level: Level, text_1: &str, text_2: &str) {
 }
 
 /// Notification impl for `NotifyMethod::Prompt`.
-fn nonblocking_prompt(level: MessageType, text_1: &str, text_2: &str) {
+pub fn notify_nonblocking_prompt(level: MessageType, text_1: &str, text_2: &str) {
     debug!("Showing popup; type: {}, title: {}", level, text_1);
     let dialog = MessageDialog::builder()
         .buttons(ButtonsType::Ok)
@@ -80,7 +80,7 @@ fn nonblocking_prompt(level: MessageType, text_1: &str, text_2: &str) {
 }
 
 /// Notification impl for `NotifyMethod::Toast`.
-fn toast(urgency: Urgency, text_1: &str, text_2: &str) -> notify_error::Result<NotificationHandle> {
+pub fn notify_toast(urgency: Urgency, text_1: &str, text_2: &str) -> notify_error::Result<NotificationHandle> {
     debug!("Sending system notification: urgency: {:?}, title: {}", urgency, text_1);
     Notification::new()
         .auto_icon()

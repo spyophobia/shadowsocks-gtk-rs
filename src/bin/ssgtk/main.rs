@@ -1,6 +1,9 @@
-use gui::app;
-use log::SetLoggerError;
+use gui::app::{self, AppStartError};
+use log::{error, SetLoggerError};
+use notify_rust::Urgency;
 use shadowsocks_gtk_rs::consts::*;
+
+use crate::gui::notification::notify_toast;
 
 mod clap_def;
 mod event;
@@ -8,7 +11,7 @@ mod gui;
 mod io;
 mod profile_manager;
 
-fn main() -> Result<(), String> {
+fn main() -> Result<(), AppStartError> {
     // init clap app
     let args = clap_def::parse_and_validate();
 
@@ -16,7 +19,14 @@ fn main() -> Result<(), String> {
     logger_init(args.verbose as i32 - args.quiet as i32).unwrap(); // never produces error on first call of init
 
     // start app
-    app::run(&args).map_err(|err| err.to_string())
+    let start_res = app::run(&args);
+    if let Err(ref err) = start_res {
+        error!("ssgtk failed to load, sending notification");
+        let text_2 = format!("Error: {}", err);
+        // if this fails, too bad
+        let _ = notify_toast(Urgency::Critical, "Failed to start", &text_2);
+    }
+    start_res
 }
 
 fn logger_init(relative_verbosity: i32) -> Result<(), SetLoggerError> {

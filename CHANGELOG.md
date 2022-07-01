@@ -11,8 +11,10 @@
 
 ### Breaking changes
 
- - Default profile directory is now `~/config/shadowsocks-gtk-rs/profiles` instead of `~/config/shadowsocks-gtk-rs/config-profiles`.
-   - This is mainly to make the vocabulary used in the codebase more consistent.
+ - Compliance with [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html)
+   - `~/.config/shadowsocks-gtk-rs/config-profiles` -> `$XDG_CONFIG_HOME/shadowsocks-gtk-rs/profiles`.
+     - Note the rename: this is mainly to make the vocabulary used in the codebase more consistent.
+   - `~/.config/shadowsocks-gtk-rs/app-state.yaml` -> `$XDG_STATE_HOME/shadowsocks-gtk-rs/app-state.yaml`
  - Having multiple profiles with the same name is no longer allowed.
    - This is so that `ssgtkctl switch-profile <NAME>` becomes deterministic.
  - Profile config file (`profile.yaml`) has been reworked to be more structured and robust.

@@ -73,9 +73,9 @@ impl TrayItem {
                 // BUG: For some reason the title is not set?
                 Some(dir) => {
                     let dir_str = dir.as_ref().to_str().unwrap(); // UTF-8 guaranteed by clap validator.
-                    AppIndicator::with_path(TRAY_TITLE, icon_name, dir_str)
+                    AppIndicator::with_path(APP_NAME, icon_name, dir_str)
                 }
-                None => AppIndicator::new(TRAY_TITLE, icon_name),
+                None => AppIndicator::new(APP_NAME, icon_name),
             },
             menu: Menu::new(),
             manual_stop_item,

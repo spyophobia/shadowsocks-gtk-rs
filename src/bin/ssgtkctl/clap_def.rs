@@ -18,7 +18,7 @@ pub struct CliArgs {
     /// Send command to the runtime API listener at a custom socket path.
     ///
     /// Useful if you want to control multiple instances.
-    #[clap(short = 'a', long = "api-socket", value_name = "PATH", default_value = &RUNTIME_API_SOCKET_PATH_DEFAULT_STR)]
+    #[clap(short = 'a', long = "api-socket", value_name = "PATH", default_value_os = RUNTIME_API_SOCKET_PATH_DEFAULT.as_os_str())]
     pub runtime_api_socket_path: PathBuf,
 
     /// Print examples of how to interface with the Unix socket directly.

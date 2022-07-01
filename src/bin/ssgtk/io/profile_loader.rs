@@ -347,7 +347,7 @@ impl ProfileFolder {
             return Err(ProfileLoadError::NotDirectory(full_path_str.into()));
         }
         // make sure directory doesn't contain the ignore file
-        if path.join(LOAD_IGNORE_FILE_NAME).is_file() {
+        if path.join(PROFILE_IGNORE_FILE_NAME).is_file() {
             return Ok(None);
         }
 
@@ -360,7 +360,7 @@ impl ProfileFolder {
             .to_string();
 
         // if directory contains the config file, then consider it a profile
-        let config_path = path.join(CONFIG_FILE_NAME);
+        let config_path = path.join(PROFILE_CONFIG_FILE_NAME);
         if config_path.is_file() {
             // config
             let content = read_to_string(config_path)?;
@@ -377,8 +377,9 @@ impl ProfileFolder {
                 let pwd = mo.pwd.unwrap_or(path.clone());
                 let bin_path = mo
                     .bin_path
-                    .map(|p| which(p)) // try to resolve
-                    .unwrap_or(SSLOCAL_DEFAULT_RESOLVED.clone())?;
+                    // which(&str) & which(Path) works differently
+                    .map(|p| which(p))
+                    .unwrap_or(which(SSLOCAL_LOOKUP_NAME_DEFAULT))?;
 
                 ProfileMetadata {
                     display_name,

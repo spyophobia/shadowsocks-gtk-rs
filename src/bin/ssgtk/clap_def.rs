@@ -1,26 +1,21 @@
 //! This module contains code that define the CLI API.
 
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{fs, path::PathBuf};
 
-use clap::{ArgAction, ErrorKind, IntoApp, Parser};
+use clap::{ArgAction, IntoApp, Parser};
 use shadowsocks_gtk_rs::consts::*;
-
-use crate::io::app_state::{AppState, AppStateError};
 
 #[derive(Debug, Clone, Parser)]
 #[clap(name = "ssgtk", author, version, about, disable_help_subcommand = true)]
 pub struct CliArgs {
     /// The directory from which to load config profiles.
-    #[clap(short = 'p', long = "profiles-dir", value_name = "DIR", default_value = &PROFILES_DIR_DEFAULT_STR)]
+    #[clap(short = 'p', long = "profiles-dir", value_name = "DIR", default_value_os = PROFILES_DIR_PATH_DEFAULT.as_os_str())]
     pub profiles_dir: PathBuf,
 
     /// Load and store app state from&to a custom file path.
     ///
     /// Useful if you want to run multiple instances".
-    #[clap(long = "app-state", value_name = "PATH", default_value = &APP_STATE_PATH_DEFAULT_STR)]
+    #[clap(long = "app-state", value_name = "PATH", default_value_os = STATE_FILE_PATH_DEFAULT.as_os_str())]
     pub app_state_path: PathBuf,
 
     /// Search for a custom image to use for the tray icon.
@@ -48,78 +43,45 @@ pub struct CliArgs {
     ///
     /// Useful if you want to control multiple instances.
     #[cfg(feature = "runtime-api")]
-    #[clap(long = "api-socket", value_name = "PATH", default_value = &RUNTIME_API_SOCKET_PATH_DEFAULT_STR)]
+    #[clap(long = "api-socket", value_name = "PATH", default_value_os = RUNTIME_API_SOCKET_PATH_DEFAULT.as_os_str())]
     pub runtime_api_socket_path: PathBuf,
 }
 
 /// Build a clap app and return matches. Only call once.
 pub fn parse_and_validate() -> CliArgs {
-    let mut args = CliArgs::parse();
+    match validate_impl(CliArgs::parse()) {
+        Ok(args) => args,
+        Err(err) => err.exit(),
+    }
+}
 
+fn validate_impl(mut args: CliArgs) -> Result<CliArgs, clap::Error> {
     // validate profiles_dir
     let profiles_dir = &args.profiles_dir;
-    let res = if profiles_dir == PROFILES_DIR_DEFAULT.as_path() {
+    if PROFILES_DIR_PATH_DEFAULT.eq(profiles_dir) {
         // if default, then mkdir if absent
-        fs::create_dir_all(profiles_dir)
-    } else {
-        // otherwise, make sure we can read dir
-        fs::read_dir(profiles_dir).map(|_| ())
-    };
-    if let Err(io_err) = res {
-        CliArgs::command().error(ErrorKind::Io, io_err).exit();
+        fs::create_dir_all(profiles_dir)?;
     }
 
     // validate app_state_path
-    if let Err(io_err) = validate_app_state_path(&args.app_state_path) {
-        CliArgs::command().error(ErrorKind::Io, io_err).exit();
+    let app_state_path = &args.app_state_path;
+    if STATE_FILE_PATH_DEFAULT.eq(app_state_path) {
+        // if default, then mkdir if absent
+        let _ = XDG_DIRS.place_state_file(STATE_FILE_NAME_DEFAULT)?;
     }
 
     // validate and canonicalize icon_theme_dir
     if let Some(theme_dir) = &args.icon_theme_dir {
         // AppIndicator requires an absolute path
-        match theme_dir.canonicalize() {
-            Ok(dir) if dir.to_str().is_some() => args.icon_theme_dir = Some(dir),
-            Ok(dir) => CliArgs::command()
-                .error(
-                    ErrorKind::Io,
-                    format!("Canonicalized icon_theme_dir ({:?}) not valid UTF-8", dir),
-                )
-                .exit(),
-            Err(io_err) => CliArgs::command().error(ErrorKind::Io, io_err).exit(),
+        let abs_dir = theme_dir.canonicalize()?;
+        if abs_dir.to_str().is_none() {
+            Err(CliArgs::command().error(
+                clap::ErrorKind::InvalidUtf8,
+                format!("Canonicalized icon_theme_dir ({:?})", abs_dir),
+            ))?;
         }
+        args.icon_theme_dir = Some(abs_dir);
     }
 
-    args
-}
-
-fn validate_app_state_path(app_state_path: impl AsRef<Path>) -> Result<(), AppStateError> {
-    let app_state_path = app_state_path.as_ref();
-    if app_state_path == APP_STATE_PATH_DEFAULT.as_path() {
-        // if default, then mkdir and overwrite with default if parse error
-        // this could happen if the state file is corrupted,
-        // or if an updated version modified the state file format
-        fs::create_dir_all(DEFAULT_CONFIG_DIR.as_path())?;
-        match AppState::from_file(app_state_path) {
-            Ok(_state) => Ok(()),
-            Err(err) => {
-                println!(
-                    "[Pre-init] error while parsing default app-state file ({:?}): {}, \
-                    resetting with default",
-                    app_state_path, err
-                );
-                AppState::default().write_to_file(app_state_path)
-            }
-        }
-    } else if !Path::new(app_state_path).exists() {
-        // if the specified file doesn't exist
-        println!(
-            "[Pre-init] the specified app-state file ({:?}) doesn't exist, \
-            trying to create new with default",
-            app_state_path
-        );
-        AppState::default().write_to_file(app_state_path)
-    } else {
-        // otherwise, try to read and parse file
-        AppState::from_file(app_state_path).map(|_| ())
-    }
+    Ok(args)
 }

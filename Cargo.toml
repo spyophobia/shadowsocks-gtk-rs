@@ -41,6 +41,7 @@ serde_yaml = "0.8.24"
 simplelog = "0.12.0"
 strum = {version = "0.24.1", features = ["derive"]}
 which = "4.2.5"
+xdg = "2.4.1"
 
 [lib]
 path = "src/lib/mod.rs"

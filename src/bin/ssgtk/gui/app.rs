@@ -136,7 +136,13 @@ impl GTKApp {
         );
 
         // load app state
-        let previous_state = AppState::from_file(app_state_path).unwrap(); // Ok guaranteed by clap validator
+        let previous_state = {
+            let state_res = AppState::from_file(app_state_path);
+            if let Err(ref err) = state_res {
+                warn!("Failed to load saved app state: {}", err);
+            }
+            state_res.unwrap_or_default()
+        };
 
         // resume core
         let (events_tx, events_rx) = unbounded_channel();

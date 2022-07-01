@@ -5,9 +5,21 @@
     - [Breaking changes](#breaking-changes)
     - [New features](#new-features)
     - [Fixes & maintenance](#fixes--maintenance)
+  - [0.4.0](#040)
+    - [Breaking changes](#breaking-changes-1)
+    - [New features](#new-features-1)
+    - [Fixes & maintenance](#fixes--maintenance-1)
   - [0.3.1](#031)
 
 ## Unreleased
+
+### Breaking changes
+
+### New features
+
+### Fixes & maintenance
+
+## 0.4.0
 
 ### Breaking changes
 

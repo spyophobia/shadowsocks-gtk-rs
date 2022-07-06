@@ -1,6 +1,7 @@
 # shadowsocks-gtk-rs
 
-![Auto compile test](https://github.com/spyophobia/shadowsocks-gtk-rs/actions/workflows/auto-compile.yml/badge.svg?branch=master)
+![Auto compile test](https://github.com/spyophobia/shadowsocks-gtk-rs/actions/workflows/auto-compile.yml/badge.svg)
+![Crates.io](https://img.shields.io/crates/v/shadowsocks-gtk-rs)
 
 A desktop GUI frontend for shadowsocks-rust client implemented with gtk-rs.
 

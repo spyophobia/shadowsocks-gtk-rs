@@ -18,7 +18,7 @@ default = ["runtime-api"]
 runtime-api = ["json5"]
 
 [dependencies]
-bus = "2.2.4"
+bus = "2.3.0"
 clap = {version = "3.2.8", features = ["cargo", "derive", "unicode"]}
 crossbeam-channel = "0.5.5"
 ctrlc = {version = "3.2.2", features = ["termination"]}

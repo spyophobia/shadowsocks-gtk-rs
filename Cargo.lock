@@ -186,9 +186,9 @@ dependencies = [
 
 [[package]]
 name = "bus"
-version = "2.2.4"
+version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02fd77f9ca79d78ad188c894048e6cbed088ca7a89307e79c0484e9887d67d3c"
+checksum = "80cb4625f5b60155ff1018c9d4ce2e38bf5ae3e5780dfab9fa68bb44a6b751e2"
 dependencies = [
  "crossbeam-channel",
  "num_cpus",

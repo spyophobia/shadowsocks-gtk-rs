@@ -6,10 +6,10 @@ use shadowsocks_gtk_rs::consts::*;
 use crate::gui::notification::notify_toast;
 
 mod clap_def;
+mod core;
 mod event;
 mod gui;
 mod io;
-mod profile_manager;
 
 fn main() -> Result<(), AppStartError> {
     // init clap app

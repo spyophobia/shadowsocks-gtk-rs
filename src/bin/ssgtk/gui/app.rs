@@ -24,6 +24,7 @@ use shadowsocks_gtk_rs::{
 use crate::io::runtime_api::APIListener;
 use crate::{
     clap_def::CliArgs,
+    core::profile_manager::ProfileManager,
     event::AppEvent,
     gui::{
         log_viewer::LogViewerWindow,
@@ -34,7 +35,6 @@ use crate::{
         app_state::AppState,
         profile_loader::{Profile, ProfileFolder, ProfileLoadError},
     },
-    profile_manager::ProfileManager,
 };
 
 #[derive(Debug)]

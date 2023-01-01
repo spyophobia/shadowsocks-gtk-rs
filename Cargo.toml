@@ -35,7 +35,7 @@ lazy_static = "1.4.0"
 libappindicator = "0.7.1"
 log = "0.4.17"
 nix = "0.25.0"
-notify-rust = "4.5.8"
+notify-rust = "4.6.0"
 serde = {version = "1.0.137", features = ["derive"]}
 serde_yaml = "0.9.13"
 simplelog = "0.12.0"

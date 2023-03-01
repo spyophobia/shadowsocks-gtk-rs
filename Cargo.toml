@@ -21,7 +21,7 @@ runtime-api = ["json5"]
 bus = "2.2.4"
 clap = {version = "3.2.8", features = ["cargo", "derive", "unicode"]}
 crossbeam-channel = "0.5.5"
-ctrlc = {version = "3.2.2", features = ["termination"]}
+ctrlc = {version = "3.2.5", features = ["termination"]}
 derivative = "2.2.0"
 duct = "0.13.5"
 enum-iterator = "1.1.2"
